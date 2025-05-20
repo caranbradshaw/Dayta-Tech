@@ -5,6 +5,7 @@ import { ArrowRight, BarChart3, FileText, Zap } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ContactSalesButton } from "@/components/contact-sales-button"
 
 export default function Home() {
   return (
@@ -434,7 +435,9 @@ export default function Home() {
                       <span>Priority support</span>
                     </li>
                   </ul>
-                  <Button className="mt-6 w-full">Contact Sales</Button>
+                  <ContactSalesButton className="mt-6 w-full bg-white text-black hover:bg-gray-100">
+                    Contact Sales
+                  </ContactSalesButton>
                 </CardContent>
               </Card>
             </div>
@@ -521,11 +524,9 @@ export default function Home() {
                     Start Your Free Trial <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/contact">
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-purple-700">
-                    Contact Sales
-                  </Button>
-                </Link>
+                <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
+                  Contact Sales
+                </ContactSalesButton>
               </div>
             </div>
           </div>
