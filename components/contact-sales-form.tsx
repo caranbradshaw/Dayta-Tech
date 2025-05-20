@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { CalendarIcon, Check, Loader2 } from "lucide-react"
+import { CalendarIcon, Check, Loader2, MousePointerClick } from "lucide-react"
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -127,6 +127,12 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
           <CardDescription>
             Fill out the form below to discuss your needs, and we'll get back to you shortly.
           </CardDescription>
+          <div className="flex justify-center mt-2">
+            <div className="animate-bounce bg-purple-100 p-2 rounded-full">
+              <MousePointerClick className="h-4 w-4 text-purple-600" />
+            </div>
+            <span className="sr-only">Scroll down to see more</span>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -220,6 +226,13 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
                 </Select>
               </div>
             </div>
+          </div>
+
+          <div className="flex justify-center mt-6">
+            <div className="animate-bounce bg-purple-100 p-2 rounded-full">
+              <MousePointerClick className="h-4 w-4 text-purple-600" />
+            </div>
+            <span className="sr-only">Scroll to continue</span>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
