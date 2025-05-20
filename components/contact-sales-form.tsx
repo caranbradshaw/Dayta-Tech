@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { sendContactEmail, type ContactFormData } from "@/actions/send-email"
 
 export function ContactSalesForm({ onClose }: { onClose: () => void }) {
   const { toast } = useToast()
@@ -43,7 +44,7 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
     setFormData((prev) => ({ ...prev, timeSlot }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Simple validation
@@ -67,16 +68,45 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
       return
     }
 
-    // Simulate form submission
+    // Prepare data for submission
+    const submissionData: ContactFormData = {
+      name: formData.name,
+      email: formData.email,
+      company: formData.company,
+      phone: formData.phone,
+      description: formData.description,
+      date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
+      timeSlot: formData.timeSlot,
+    }
+
+    // Submit the form
     setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      const result = await sendContactEmail(submissionData)
+
+      if (result.success) {
+        toast({
+          title: "Request submitted!",
+          description: "Your information has been sent to our sales team. They will contact you shortly.",
+        })
+        onClose()
+      } else {
+        toast({
+          title: "Submission failed",
+          description: result.message || "There was an error submitting your request. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
       toast({
-        title: "Request submitted!",
-        description: "Our sales team will contact you shortly.",
+        title: "Submission error",
+        description: "There was an unexpected error. Please try again later.",
+        variant: "destructive",
       })
-      onClose()
-    }, 1500)
+      console.error("Form submission error:", error)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const timeSlots = [
