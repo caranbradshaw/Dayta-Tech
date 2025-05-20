@@ -222,11 +222,13 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
+        <CardFooter className="flex flex-col gap-4">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2"
+            size="lg"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -238,6 +240,9 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
                 Submit Request
               </>
             )}
+          </Button>
+          <Button type="button" variant="outline" onClick={onClose} className="w-full">
+            Cancel
           </Button>
         </CardFooter>
       </form>
