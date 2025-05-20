@@ -1,4 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { BarChart3, FileUp, History, Settings, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -7,7 +11,50 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileUploader } from "@/components/file-uploader"
 import { RecentAnalyses } from "@/components/recent-analyses"
 
+interface UserData {
+  name: string
+  email: string
+  industry: string
+  company: string
+}
+
 export default function DashboardPage() {
+  const router = useRouter()
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userDataStr = localStorage.getItem("daytaTechUser")
+
+    if (userDataStr) {
+      try {
+        const parsedUserData = JSON.parse(userDataStr)
+        setUserData(parsedUserData)
+      } catch (error) {
+        console.error("Failed to parse user data:", error)
+      }
+    } else {
+      // Redirect to login if no user data found
+      router.push("/login")
+    }
+
+    setIsLoading(false)
+  }, [router])
+
+  const handleLogout = () => {
+    localStorage.removeItem("daytaTechUser")
+    router.push("/")
+  }
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+  }
+
+  if (!userData) {
+    return null // Will redirect to login
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -28,11 +75,9 @@ export default function DashboardPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              Help
-            </Button>
-            <Button variant="ghost" size="sm">
-              Account
+            <div className="text-sm font-medium mr-2">Welcome, {userData.name.split(" ")[0]}</div>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Logout
             </Button>
           </div>
         </div>
@@ -104,10 +149,10 @@ export default function DashboardPage() {
                 <Settings className="h-4 w-4 text-gray-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Not Set</div>
+                <div className="text-2xl font-bold capitalize">{userData.industry || "Not Set"}</div>
                 <p className="text-xs text-gray-500">
                   <Link href="/dashboard/settings" className="text-purple-600 hover:underline">
-                    Set your industry
+                    {userData.industry ? "Update" : "Set"} your industry
                   </Link>{" "}
                   for better insights
                 </p>

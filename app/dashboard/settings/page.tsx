@@ -1,4 +1,10 @@
+"use client"
+
+import type React from "react"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { BarChart3, Save } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -7,8 +13,118 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/hooks/use-toast"
+
+interface UserData {
+  name: string
+  email: string
+  industry: string
+  company: string
+}
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    company: "",
+    industry: "",
+  })
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userDataStr = localStorage.getItem("daytaTechUser")
+
+    if (userDataStr) {
+      try {
+        const parsedUserData = JSON.parse(userDataStr)
+        setUserData(parsedUserData)
+
+        // Split name into first and last name
+        const nameParts = parsedUserData.name.split(" ")
+        const firstName = nameParts[0]
+        const lastName = nameParts.slice(1).join(" ")
+
+        setFormData({
+          firstName,
+          lastName,
+          email: parsedUserData.email,
+          company: parsedUserData.company,
+          industry: parsedUserData.industry,
+        })
+      } catch (error) {
+        console.error("Failed to parse user data:", error)
+      }
+    } else {
+      // Redirect to login if no user data found
+      router.push("/login")
+    }
+
+    setIsLoading(false)
+  }, [router])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target
+    setFormData((prev) => ({ ...prev, [id]: value }))
+  }
+
+  const handleIndustryChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, industry: value }))
+  }
+
+  const handleSaveProfile = () => {
+    // Update user data in localStorage
+    const updatedUserData = {
+      name: `${formData.firstName} ${formData.lastName}`,
+      email: formData.email,
+      industry: formData.industry,
+      company: formData.company,
+    }
+
+    localStorage.setItem("daytaTechUser", JSON.stringify(updatedUserData))
+    setUserData(updatedUserData)
+
+    toast({
+      title: "Profile updated",
+      description: "Your profile information has been updated successfully.",
+    })
+  }
+
+  const handleSaveIndustry = () => {
+    // Update user data in localStorage
+    if (userData) {
+      const updatedUserData = {
+        ...userData,
+        industry: formData.industry,
+      }
+
+      localStorage.setItem("daytaTechUser", JSON.stringify(updatedUserData))
+      setUserData(updatedUserData)
+
+      toast({
+        title: "Industry updated",
+        description: "Your industry settings have been updated successfully.",
+      })
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("daytaTechUser")
+    router.push("/")
+  }
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+  }
+
+  if (!userData) {
+    return null // Will redirect to login
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -32,11 +148,9 @@ export default function SettingsPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              Help
-            </Button>
-            <Button variant="ghost" size="sm">
-              Account
+            <div className="text-sm font-medium mr-2">Welcome, {userData.name.split(" ")[0]}</div>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Logout
             </Button>
           </div>
         </div>
@@ -63,25 +177,46 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="first-name">First name</Label>
-                      <Input id="first-name" placeholder="Enter your first name" />
+                      <Label htmlFor="firstName">First name</Label>
+                      <Input
+                        id="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="Enter your first name"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="last-name">Last name</Label>
-                      <Input id="last-name" placeholder="Enter your last name" />
+                      <Label htmlFor="lastName">Last name</Label>
+                      <Input
+                        id="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Enter your last name"
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="Enter your email" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company">Company</Label>
-                    <Input id="company" placeholder="Enter your company name" />
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={handleChange}
+                      placeholder="Enter your company name"
+                    />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="ml-auto">
+                  <Button className="ml-auto" onClick={handleSaveProfile}>
                     <Save className="mr-2 h-4 w-4" />
                     Save Changes
                   </Button>
@@ -97,7 +232,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="industry">Industry</Label>
-                    <Select>
+                    <Select value={formData.industry} onValueChange={handleIndustryChange}>
                       <SelectTrigger id="industry">
                         <SelectValue placeholder="Select your industry" />
                       </SelectTrigger>
@@ -137,7 +272,7 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="ml-auto">
+                  <Button className="ml-auto" onClick={handleSaveIndustry}>
                     <Save className="mr-2 h-4 w-4" />
                     Save Industry Settings
                   </Button>
