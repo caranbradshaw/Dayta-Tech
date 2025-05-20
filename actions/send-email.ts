@@ -12,6 +12,7 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required"),
   date: z.string().min(1, "Date is required"),
   timeSlot: z.string().min(1, "Time slot is required"),
+  attachmentName: z.string().optional(),
 })
 
 export type ContactFormData = z.infer<typeof formSchema>
@@ -40,6 +41,8 @@ Requested Meeting:
 ----------------
 Date: ${validatedData.date}
 Time: ${validatedData.timeSlot}
+
+${validatedData.attachmentName ? `Attachment: ${validatedData.attachmentName} (will be sent separately)` : "No attachment provided"}
     `
 
     // Format HTML version
@@ -62,6 +65,8 @@ Time: ${validatedData.timeSlot}
   <strong>Date:</strong> ${validatedData.date}<br>
   <strong>Time:</strong> ${validatedData.timeSlot}
 </p>
+
+${validatedData.attachmentName ? `<p><strong>Attachment:</strong> ${validatedData.attachmentName} (will be sent separately)</p>` : "<p>No attachment provided</p>"}
     `
 
     // Send the email

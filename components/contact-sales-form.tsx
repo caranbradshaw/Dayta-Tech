@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { CalendarIcon, Check, Loader2, MousePointerClick } from "lucide-react"
+import { useState, useRef } from "react"
+import { CalendarIcon, Check, Loader2, MousePointerClick, Paperclip, X } from "lucide-react"
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,8 @@ import { sendContactEmail, type ContactFormData } from "@/actions/send-email"
 export function ContactSalesForm({ onClose }: { onClose: () => void }) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -42,6 +44,24 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
 
   const handleTimeSlotChange = (timeSlot: string) => {
     setFormData((prev) => ({ ...prev, timeSlot }))
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0])
+    }
+  }
+
+  const handleUploadClick = () => {
+    // Trigger the hidden file input click event
+    fileInputRef.current?.click()
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,11 +97,22 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
       description: formData.description,
       date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
       timeSlot: formData.timeSlot,
+      attachmentName: selectedFile ? selectedFile.name : undefined,
     }
 
     // Submit the form
     setIsSubmitting(true)
     try {
+      // In a real implementation, you would upload the file here
+      // For example, using FormData and fetch, or a specialized file upload library
+
+      // For now, we'll just simulate the file upload
+      if (selectedFile) {
+        // Simulate file upload delay
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        console.log("File would be uploaded:", selectedFile.name, selectedFile.type, selectedFile.size)
+      }
+
       const result = await sendContactEmail(submissionData)
 
       if (result.success) {
@@ -171,6 +202,51 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
               rows={3}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Attachment (Optional)</Label>
+            <div className="mt-1">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+              />
+
+              {selectedFile ? (
+                <div className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                  <div className="flex items-center">
+                    <Paperclip className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveFile}
+                    className="h-8 w-8 p-0 rounded-full"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove file</span>
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleUploadClick}
+                  className="w-full flex items-center justify-center"
+                >
+                  <Paperclip className="h-4 w-4 mr-2" />
+                  Upload File
+                </Button>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Supported formats: PDF, Word, Excel, PowerPoint, Text, CSV, ZIP (Max 10MB)
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">
