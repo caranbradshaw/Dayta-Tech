@@ -29,7 +29,7 @@ export default function LoginPage() {
     setFormData((prev) => ({ ...prev, [id]: value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validate form
@@ -53,10 +53,21 @@ export default function LoginPage() {
       return
     }
 
-    // Sign in with Supabase
+    // Show loading state
     setIsLoading(true)
-    try {
-      await signIn(formData.email, formData.password)
+
+    // Simulate login delay
+    setTimeout(() => {
+      // Store user info in localStorage for demo purposes
+      localStorage.setItem(
+        "daytaTechUser",
+        JSON.stringify({
+          name: "Demo User",
+          email: formData.email,
+          industry: "technology",
+          company: "Demo Company",
+        }),
+      )
 
       toast({
         title: "Logged in successfully!",
@@ -65,40 +76,9 @@ export default function LoginPage() {
 
       // Redirect to dashboard
       router.push("/dashboard")
-    } catch (error) {
-      console.error("Login error:", error)
 
-      // For demo purposes, allow login with any credentials
-      if (process.env.NODE_ENV !== "production") {
-        // Store mock user info in localStorage for demo
-        localStorage.setItem(
-          "daytaTechUser",
-          JSON.stringify({
-            name: "Demo User",
-            email: formData.email,
-            industry: "technology",
-            company: "Demo Company",
-          }),
-        )
-
-        toast({
-          title: "Demo login successful!",
-          description: "You're now logged in with demo credentials.",
-        })
-
-        // Redirect to dashboard
-        router.push("/dashboard")
-        return
-      }
-
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
       setIsLoading(false)
-    }
+    }, 1000)
   }
 
   return (
