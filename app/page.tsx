@@ -264,7 +264,7 @@ export default function Home() {
                     Most Popular
                   </div>
                   <CardTitle>Pro</CardTitle>
-                  <div className="text-3xl font-bold">$39</div>
+                  <div className="text-3xl font-bold">$99</div>
                   <CardDescription>Per month, billed monthly</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -361,7 +361,7 @@ export default function Home() {
               <Card className="border-2 border-gray-200">
                 <CardHeader>
                   <CardTitle>Team</CardTitle>
-                  <div className="text-3xl font-bold">$99</div>
+                  <div className="text-3xl font-bold">$499</div>
                   <CardDescription>Per month, billed monthly</CardDescription>
                 </CardHeader>
                 <CardContent>

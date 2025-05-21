@@ -12,10 +12,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/auth-provider"
 
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -27,7 +29,7 @@ export default function LoginPage() {
     setFormData((prev) => ({ ...prev, [id]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validate form
@@ -51,31 +53,28 @@ export default function LoginPage() {
       return
     }
 
-    // Simulate login
+    // Sign in with Supabase
     setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      await signIn(formData.email, formData.password)
 
-      // For demo purposes, we'll just accept any valid email/password
       toast({
         title: "Logged in successfully!",
         description: "Welcome back to DaytaTech.",
       })
 
-      // Store a demo user in localStorage
-      localStorage.setItem(
-        "daytaTechUser",
-        JSON.stringify({
-          name: "Demo User",
-          email: formData.email,
-          industry: "technology",
-          company: "Demo Company",
-        }),
-      )
-
       // Redirect to dashboard
       router.push("/dashboard")
-    }, 1500)
+    } catch (error) {
+      console.error("Login error:", error)
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

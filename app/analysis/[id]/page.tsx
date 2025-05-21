@@ -9,7 +9,22 @@ import { DataTable } from "@/components/data-table"
 import { InsightCards } from "@/components/insight-cards"
 import { RecommendationsList } from "@/components/recommendations-list"
 
+// This would normally come from the user's session or database
+const getUserMembershipLevel = (userId: string): "free" | "pro" | "team" => {
+  // Mock implementation - in a real app, this would check the user's subscription
+  // For demo purposes, we'll return different levels based on the analysis ID
+  const id = Number.parseInt(userId.replace(/\D/g, "") || "0")
+  if (id % 3 === 0) return "team"
+  if (id % 3 === 1) return "pro"
+  return "free"
+}
+
 export default function AnalysisPage({ params }: { params: { id: string } }) {
+  // In a real app, you would fetch the analysis data and user info
+  // For demo purposes, we'll use the ID to determine membership level
+  const membershipLevel = getUserMembershipLevel(params.id)
+  const industry = "technology" // This would normally come from user profile
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -101,9 +116,22 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
                 <CardHeader>
                   <CardTitle>Recommendations</CardTitle>
                   <CardDescription>AI-generated recommendations based on your data.</CardDescription>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        membershipLevel === "free"
+                          ? "bg-gray-100 text-gray-800"
+                          : membershipLevel === "pro"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {membershipLevel === "free" ? "Free Plan" : membershipLevel === "pro" ? "Pro Plan" : "Team Plan"}
+                    </span>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <RecommendationsList />
+                  <RecommendationsList analysisId={params.id} industry={industry} membershipLevel={membershipLevel} />
                 </CardContent>
               </Card>
             </TabsContent>

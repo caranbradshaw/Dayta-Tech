@@ -4,15 +4,19 @@ import type React from "react"
 
 import { useState } from "react"
 import { FileUp, Upload } from "lucide-react"
+import { v4 as uuidv4 } from "uuid"
 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { uploadFile, createAnalysis } from "@/lib/supabase-utils"
+import { supabase } from "@/lib/supabase"
 
 export function FileUploader() {
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [fileName, setFileName] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -40,24 +44,59 @@ export function FileUploader() {
     }
   }
 
-  const handleFileUpload = (file: File) => {
-    setFileName(file.name)
-    setIsUploading(true)
+  const handleFileUpload = async (file: File) => {
+    try {
+      setFileName(file.name)
+      setIsUploading(true)
+      setError(null)
 
-    // Simulate upload progress
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 5
-      setUploadProgress(progress)
+      // Check if user is authenticated
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-      if (progress >= 100) {
-        clearInterval(interval)
-        setTimeout(() => {
-          // Redirect to analysis page after upload completes
-          window.location.href = `/analysis/sample-${Date.now()}`
-        }, 500)
+      if (!user) {
+        throw new Error("You must be logged in to upload files")
       }
-    }, 100)
+
+      // Start progress simulation
+      let progress = 0
+      const progressInterval = setInterval(() => {
+        progress += 5
+        setUploadProgress(Math.min(progress, 90)) // Cap at 90% until actual upload completes
+      }, 100)
+
+      // Generate a unique file path
+      const fileExt = file.name.split(".").pop()
+      const filePath = `${user.id}/${uuidv4()}.${fileExt}`
+
+      // Upload file to Supabase Storage
+      await uploadFile(file, filePath)
+
+      // Create analysis record in database
+      const analysis = await createAnalysis({
+        user_id: user.id,
+        file_name: file.name,
+        file_type: file.type,
+        status: "processing",
+        summary: null,
+        insights: null,
+        recommendations: null,
+      })
+
+      // Complete progress
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      // Redirect to analysis page after upload completes
+      setTimeout(() => {
+        window.location.href = `/analysis/${analysis.id}`
+      }, 500)
+    } catch (err) {
+      console.error("Error uploading file:", err)
+      setError(err instanceof Error ? err.message : "Failed to upload file")
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -102,6 +141,7 @@ export function FileUploader() {
             </Button>
           </div>
           <p className="mt-4 text-xs text-gray-500">Maximum file size: 50MB</p>
+          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
         </div>
       )}
     </div>

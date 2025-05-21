@@ -5,6 +5,7 @@ import "./globals.css"
 import { DemoWalkthrough } from "@/components/demo-walkthrough"
 import { Toaster } from "@/components/ui/toast"
 import { ContactSalesDialog } from "@/components/contact-sales-dialog"
+import { AuthProvider } from "@/components/auth-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,10 +23,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
-        <DemoWalkthrough />
-        <ContactSalesDialog />
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <DemoWalkthrough />
+          <ContactSalesDialog />
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )

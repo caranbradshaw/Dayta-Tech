@@ -25,6 +25,7 @@ export default function SignupPage() {
     password: "",
     company: "",
     industry: "",
+    customIndustry: "", // Add this new field
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,6 +35,10 @@ export default function SignupPage() {
 
   const handleIndustryChange = (value: string) => {
     setFormData((prev) => ({ ...prev, industry: value }))
+  }
+
+  const handleCustomIndustryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, customIndustry: e.target.value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,6 +52,16 @@ export default function SignupPage() {
       toast({
         title: "Missing required fields",
         description: "Please fill in all required fields to create your account.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if custom industry is required but missing
+    if (formData.industry === "other" && !formData.customIndustry) {
+      toast({
+        title: "Missing industry information",
+        description: "Please specify your industry.",
         variant: "destructive",
       })
       return
@@ -88,7 +103,7 @@ export default function SignupPage() {
         JSON.stringify({
           name: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,
-          industry: formData.industry,
+          industry: formData.industry === "other" ? formData.customIndustry : formData.industry,
           company: formData.company || "Not specified",
         }),
       )
@@ -172,6 +187,21 @@ export default function SignupPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.industry === "other" && (
+              <div className="space-y-2">
+                <Label htmlFor="customIndustry">
+                  Please specify your industry <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="customIndustry"
+                  placeholder="Enter your industry"
+                  value={formData.customIndustry}
+                  onChange={handleCustomIndustryChange}
+                  required
+                />
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button className="w-full" type="submit" disabled={isLoading}>
