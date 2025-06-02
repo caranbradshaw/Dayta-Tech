@@ -2,6 +2,7 @@
 
 export type AccountType = "basic" | "pro" | "team" | "enterprise"
 export type UserRole = "data-scientist" | "data-engineer" | undefined
+export type TrialStatus = "active" | "expired" | "converted" | "none"
 
 export interface AccountFeatures {
   basicInsights: boolean
@@ -36,7 +37,7 @@ export const accountFeatures: Record<AccountType, AccountFeatures> = {
     historicalLearning: false,
     teamCollaboration: false,
     prioritySupport: false,
-    executiveSummaries: false,
+    executiveSummaries: true,
     pipelineInsights: false,
     architectureRecommendations: false,
     dataTransformationInsights: false,
@@ -146,8 +147,26 @@ export function getSupportedFileTypes(accountType: AccountType, userRole?: UserR
   }
 
   return accountType === "basic"
-    ? ["csv", "xlsx", "xls"]
+    ? ["csv", "xlsx", "xls", "json"]
     : ["csv", "xlsx", "xls", "json", "pbix", "twb", "txt", "xml", "parquet"]
+}
+
+export function calculateTrialEndDate(): Date {
+  const now = new Date()
+  const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+  return trialEnd
+}
+
+export function calculateDaysRemaining(trialEndDate: string): number {
+  const now = new Date()
+  const endDate = new Date(trialEndDate)
+  const diffTime = endDate.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return Math.max(0, diffDays)
+}
+
+export function isTrialActive(trialEndDate: string): boolean {
+  return calculateDaysRemaining(trialEndDate) > 0
 }
 
 export function createAccount(
@@ -159,6 +178,7 @@ export function createAccount(
   role?: UserRole,
 ): any {
   const features = { ...accountFeatures[accountType] }
+  const trialEndDate = calculateTrialEndDate()
 
   // Special features for Data Scientists
   if (role === "data-scientist") {
@@ -187,6 +207,10 @@ export function createAccount(
     company,
     role,
     accountType,
+    trialStatus: "active" as TrialStatus,
+    trialEndDate: trialEndDate.toISOString(),
+    isTrialActive: true,
+    requiresPayment: false,
     uploadCredits: accountType === "basic" ? 10 : "unlimited",
     exportCredits: accountType === "basic" ? 5 : "unlimited",
     features: {
@@ -237,6 +261,9 @@ export function upgradeAccount(userData: any, newAccountType: AccountType): any 
   return {
     ...userData,
     accountType: newAccountType,
+    trialStatus: "converted" as TrialStatus,
+    isTrialActive: false,
+    requiresPayment: true,
     uploadCredits: newAccountType === "basic" ? 10 : "unlimited",
     exportCredits: newAccountType === "basic" ? 5 : "unlimited",
     features: {

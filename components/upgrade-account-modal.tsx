@@ -70,7 +70,7 @@ export function UpgradeAccountModal({ onClose, onSuccess }: UpgradeAccountModalP
 
         toast({
           title: "Account upgraded!",
-          description: `Your account has been upgraded to ${plan === "pro" ? "Pro" : plan === "team" ? "Team" : "Enterprise"}.`,
+          description: `Your account has been upgraded from Basic ($39/month) to ${plan === "pro" ? "Pro" : plan === "team" ? "Team" : "Enterprise"}.`,
         })
 
         onSuccess()
@@ -107,7 +107,9 @@ export function UpgradeAccountModal({ onClose, onSuccess }: UpgradeAccountModalP
 
         <CardHeader>
           <CardTitle className="text-2xl">Upgrade Your Account</CardTitle>
-          <CardDescription>Get access to advanced features and unlimited uploads</CardDescription>
+          <CardDescription>
+            Upgrade from Basic plan ($39/month) to access advanced features and unlimited uploads
+          </CardDescription>
         </CardHeader>
 
         <form onSubmit={handleSubmit}>

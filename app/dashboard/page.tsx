@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { BarChart3, FileUp, Settings, Upload, Download, Sparkles, Cog } from "lucide-react"
+import { BarChart3, FileUp, Settings, Upload, Download, Sparkles, Cog, Clock, CreditCard } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileUploader } from "@/components/file-uploader"
 import { RecentAnalyses } from "@/components/recent-analyses"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { calculateDaysRemaining, isTrialActive } from "@/lib/account-utils"
 
 interface UserData {
   name: string
@@ -19,6 +21,10 @@ interface UserData {
   company: string
   role?: string
   accountType?: string
+  trialStatus?: string
+  trialEndDate?: string
+  isTrialActive?: boolean
+  requiresPayment?: boolean
   uploadCredits?: number
   exportCredits?: number
   features?: {
@@ -85,6 +91,10 @@ export default function DashboardPage() {
   const isDataScientist = userRole === "data-scientist"
   const isDataEngineer = userRole === "data-engineer"
 
+  // Trial information
+  const trialActive = userData.trialEndDate ? isTrialActive(userData.trialEndDate) : false
+  const daysRemaining = userData.trialEndDate ? calculateDaysRemaining(userData.trialEndDate) : 0
+
   const accountBadgeColor =
     accountType === "basic"
       ? "bg-green-100 text-green-800"
@@ -94,8 +104,9 @@ export default function DashboardPage() {
           ? "bg-blue-100 text-blue-800"
           : "bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800"
 
-  const accountLabel =
-    accountType === "basic"
+  const accountLabel = trialActive
+    ? `Free Trial (${daysRemaining} days left)`
+    : accountType === "basic"
       ? isDataScientist
         ? "Basic Plan + Data Science Features"
         : isDataEngineer
@@ -156,6 +167,34 @@ export default function DashboardPage() {
             <Badge className={accountBadgeColor}>{accountLabel}</Badge>
           </div>
 
+          {/* Trial Status Alert */}
+          {trialActive && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <Clock className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Free Trial Active:</strong> You have {daysRemaining} days remaining in your free trial. After
+                that, you'll be charged $39/month for the Basic plan.{" "}
+                <Button variant="link" className="p-0 h-auto text-blue-600 underline">
+                  Add payment method
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Trial Expired Alert */}
+          {!trialActive && userData.trialStatus === "active" && (
+            <Alert className="border-red-200 bg-red-50">
+              <CreditCard className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <strong>Trial Expired:</strong> Your free trial has ended. Please add a payment method to continue using
+                DaytaTech.{" "}
+                <Button variant="link" className="p-0 h-auto text-red-600 underline">
+                  Add payment method now
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Tabs defaultValue="upload" className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="upload">Upload</TabsTrigger>
@@ -175,7 +214,7 @@ export default function DashboardPage() {
                             ? " As a Data Scientist, you have access to all file formats and advanced analytics."
                             : isDataEngineer
                               ? " As a Data Engineer, you have access to all file formats and engineering insights."
-                              : " We support CSV, Excel, and more depending on your plan."}
+                              : " We support CSV, Excel, JSON and more depending on your plan."}
                         </CardDescription>
                       </div>
                       <div className="text-right space-y-2">
@@ -272,17 +311,30 @@ export default function DashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Industry</CardTitle>
-                <Settings className="h-4 w-4 text-gray-500" />
+                <CardTitle className="text-sm font-medium">{trialActive ? "Trial Status" : "Industry"}</CardTitle>
+                {trialActive ? (
+                  <Clock className="h-4 w-4 text-blue-500" />
+                ) : (
+                  <Settings className="h-4 w-4 text-gray-500" />
+                )}
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold capitalize">{userData.industry || "Not Set"}</div>
-                <p className="text-xs text-gray-500">
-                  <Link href="/dashboard/settings" className="text-purple-600 hover:underline">
-                    {userData.industry ? "Update" : "Set"} your industry
-                  </Link>{" "}
-                  for better insights
-                </p>
+                {trialActive ? (
+                  <>
+                    <div className="text-2xl font-bold text-blue-600">{daysRemaining}</div>
+                    <p className="text-xs text-blue-600">days remaining in trial</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold capitalize">{userData.industry || "Not Set"}</div>
+                    <p className="text-xs text-gray-500">
+                      <Link href="/dashboard/settings" className="text-purple-600 hover:underline">
+                        {userData.industry ? "Update" : "Set"} your industry
+                      </Link>{" "}
+                      for better insights
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -294,16 +346,16 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-xl font-bold capitalize mb-2">
-                {accountType === "basic" ? "Basic Plan - $39/month" : "Premium Plan"}
-                {isDataScientist && accountType === "basic" && (
+                {trialActive ? "Free Trial" : accountType === "basic" ? "Basic Plan - $39/month" : "Premium Plan"}
+                {isDataScientist && (
                   <span className="ml-2 text-sm font-normal text-purple-600">+ Data Science Features</span>
                 )}
-                {isDataEngineer && accountType === "basic" && (
+                {isDataEngineer && (
                   <span className="ml-2 text-sm font-normal text-blue-600">+ Data Engineering Features</span>
                 )}
               </div>
 
-              {isDataScientist && accountType === "basic" && (
+              {isDataScientist && (
                 <div className="mb-4 p-3 bg-purple-50 border border-purple-100 rounded-md">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="h-4 w-4 text-purple-600" />
@@ -382,7 +434,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {isDataEngineer && accountType === "basic" && (
+              {isDataEngineer && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
                   <div className="flex items-center gap-2 mb-2">
                     <Cog className="h-4 w-4 text-blue-600" />
@@ -513,105 +565,125 @@ export default function DashboardPage() {
               )}
 
               <ul className="text-sm space-y-1">
-                {accountType === "basic" ? (
-                  <>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-green-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>10 file uploads per month</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-green-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>5 data exports per month</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-green-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Basic insights</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-green-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>CSV and Excel support</span>
-                      {(isDataScientist || isDataEngineer) && (
-                        <span className="text-xs text-blue-600 ml-1">(+ all formats)</span>
-                      )}
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-green-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Email support</span>
-                    </li>
-                  </>
-                ) : (
-                  <li className="text-sm text-gray-500">Premium features available</li>
-                )}
+                <li className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-green-500"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>10 file uploads per month</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-green-500"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>5 data exports per month</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-green-500"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>AI-powered insights & recommendations</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-green-500"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>CSV, Excel, JSON support</span>
+                  {(isDataScientist || isDataEngineer) && (
+                    <span className="text-xs text-blue-600 ml-1">(+ all formats)</span>
+                  )}
+                </li>
+                <li className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-green-500"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Executive summaries</span>
+                </li>
+                <li className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-green-500"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Email support</span>
+                </li>
               </ul>
-              {accountType === "basic" && !isDataScientist && !isDataEngineer && (
+
+              {trialActive ? (
                 <Button variant="outline" size="sm" className="mt-4 w-full">
-                  Upgrade to Pro - $99/month
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Add Payment Method
                 </Button>
+              ) : (
+                !isDataScientist &&
+                !isDataEngineer && (
+                  <Button variant="outline" size="sm" className="mt-4 w-full">
+                    Upgrade to Pro - $99/month
+                  </Button>
+                )
               )}
             </CardContent>
           </Card>

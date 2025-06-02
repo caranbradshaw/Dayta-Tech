@@ -56,7 +56,7 @@ export default function Home() {
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Link href="/signup">
                     <Button size="lg" className="gap-1">
-                      Start for Free <ArrowRight className="h-4 w-4" />
+                      Start Now <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Link href="/demo">
@@ -194,12 +194,12 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 mt-12">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-4 mt-12">
               <Card className="border-2 border-gray-200">
                 <CardHeader>
-                  <CardTitle>Free</CardTitle>
-                  <div className="text-3xl font-bold">$0</div>
-                  <CardDescription>Perfect for trying out DaytaTech</CardDescription>
+                  <CardTitle>Basic</CardTitle>
+                  <div className="text-3xl font-bold">$39</div>
+                  <CardDescription>Per month, billed monthly</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -218,7 +218,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>5 file uploads per month</span>
+                      <span>10 file uploads per month</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -235,7 +235,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Basic insights</span>
+                      <span>AI-powered insights & recommendations</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -252,10 +252,46 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>CSV and Excel support</span>
+                      <span>CSV, Excel, JSON support</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Executive summaries</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Email support</span>
                     </li>
                   </ul>
-                  <Button className="mt-6 w-full">Sign Up Free</Button>
+                  <Link href="/signup">
+                    <Button className="mt-6 w-full">Get Started - $39/mo</Button>
+                  </Link>
                 </CardContent>
               </Card>
               <Card className="border-2 border-purple-600 shadow-lg">
@@ -355,7 +391,9 @@ export default function Home() {
                       <span>Historical data learning</span>
                     </li>
                   </ul>
-                  <Button className="mt-6 w-full">Get Started</Button>
+                  <Link href="/signup">
+                    <Button className="mt-6 w-full">Get Started</Button>
+                  </Link>
                 </CardContent>
               </Card>
               <Card className="border-2 border-gray-200">
@@ -435,6 +473,105 @@ export default function Home() {
                       <span>Priority support</span>
                     </li>
                   </ul>
+                  <Link href="/signup">
+                    <Button className="mt-6 w-full">Get Started</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+              <Card className="border-2 border-gray-200">
+                <CardHeader>
+                  <CardTitle>Enterprise</CardTitle>
+                  <div className="text-3xl font-bold">Custom</div>
+                  <CardDescription>Tailored for your organization</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Everything in Team</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Unlimited team members</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>SSO & advanced security</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Dedicated support</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-green-500"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Custom integrations</span>
+                    </li>
+                  </ul>
                   <ContactSalesButton className="mt-6 w-full bg-white text-black hover:bg-gray-100">
                     Contact Sales
                   </ContactSalesButton>
@@ -503,6 +640,30 @@ export default function Home() {
                   </p>
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>What's the difference between Data Engineer and Data Scientist roles?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500 mb-3">
+                    <strong>Data Engineers</strong> focus on the technical infrastructure that makes data usable. They
+                    build and maintain data pipelines, ensure data quality, optimize storage systems, and create the
+                    foundation that enables data analysis. Think of them as the architects and builders of your data
+                    ecosystem.
+                  </p>
+                  <p className="text-gray-500">
+                    <strong>Data Scientists</strong> focus on extracting business insights from data. They analyze
+                    trends, create predictive models, generate executive summaries, and translate data into actionable
+                    business recommendations. Think of them as the detectives who solve business problems using data.
+                  </p>
+                  <p className="text-gray-500 mt-3 text-sm">
+                    <em>
+                      DaytaTech provides specialized AI recommendations for both roles - technical optimization insights
+                      for Data Engineers and business intelligence insights for Data Scientists.
+                    </em>
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
@@ -521,7 +682,7 @@ export default function Home() {
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Link href="/signup">
                   <Button size="lg" variant="secondary" className="gap-1">
-                    Start Your Free Trial <ArrowRight className="h-4 w-4" />
+                    Start Now - $39/month <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
