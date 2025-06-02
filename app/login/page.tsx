@@ -56,29 +56,68 @@ export default function LoginPage() {
     // Show loading state
     setIsLoading(true)
 
-    // Simulate login delay
-    setTimeout(() => {
-      // Store user info in localStorage for demo purposes
-      localStorage.setItem(
-        "daytaTechUser",
-        JSON.stringify({
-          name: "Demo User",
+    // Check if user exists in localStorage (for demo purposes)
+    const existingUsers = localStorage.getItem("daytaTechUsers")
+    const users = existingUsers ? JSON.parse(existingUsers) : []
+    const user = users.find((u: any) => u.email === formData.email)
+
+    if (user) {
+      // In a real app, we would verify the password here
+      setTimeout(() => {
+        // Store the current user in localStorage
+        localStorage.setItem("daytaTechUser", JSON.stringify(user))
+
+        toast({
+          title: "Logged in successfully!",
+          description: `Welcome back, ${user.name.split(" ")[0]}!`,
+        })
+
+        // Redirect to dashboard
+        router.push("/dashboard")
+        setIsLoading(false)
+      }, 1000)
+    } else {
+      // For demo purposes, create a new Basic account if user doesn't exist
+      setTimeout(() => {
+        const newUser = {
+          name: `User ${Math.floor(Math.random() * 1000)}`,
           email: formData.email,
           industry: "technology",
-          company: "Demo Company",
-        }),
-      )
+          company: "Not specified",
+          accountType: "basic",
+          uploadCredits: 10,
+          exportCredits: 5,
+          features: {
+            basicInsights: true,
+            csvSupport: true,
+            excelSupport: true,
+            advancedInsights: false,
+            allFileFormats: false,
+            industrySpecificAnalysis: false,
+            historicalLearning: false,
+            teamCollaboration: false,
+            prioritySupport: false,
+          },
+          createdAt: new Date().toISOString(),
+        }
 
-      toast({
-        title: "Logged in successfully!",
-        description: "Welcome back to DaytaTech.",
-      })
+        // Add user to users list
+        users.push(newUser)
+        localStorage.setItem("daytaTechUsers", JSON.stringify(users))
 
-      // Redirect to dashboard
-      router.push("/dashboard")
+        // Set current user
+        localStorage.setItem("daytaTechUser", JSON.stringify(newUser))
 
-      setIsLoading(false)
-    }, 1000)
+        toast({
+          title: "Account created!",
+          description: "We've created a Basic account for you since this is your first time logging in.",
+        })
+
+        // Redirect to dashboard
+        router.push("/dashboard")
+        setIsLoading(false)
+      }, 1000)
+    }
   }
 
   return (
@@ -130,7 +169,7 @@ export default function LoginPage() {
             <div className="text-center text-sm">
               Don't have an account?{" "}
               <Link href="/signup" className="text-purple-600 hover:underline">
-                Sign up
+                Sign up for Basic Plan ($39/month)
               </Link>
             </div>
           </CardFooter>

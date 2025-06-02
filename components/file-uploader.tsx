@@ -8,10 +8,17 @@ import { v4 as uuidv4 } from "uuid"
 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { uploadFile, createAnalysis } from "@/lib/supabase-utils"
-import { supabase } from "@/lib/supabase"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { getSupportedFileTypes } from "@/lib/account-utils"
 
-export function FileUploader() {
+interface FileUploaderProps {
+  accountType: string
+  uploadCredits: number
+  exportCredits: number
+  userRole?: string
+}
+
+export function FileUploader({ accountType, uploadCredits, exportCredits, userRole }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -45,19 +52,27 @@ export function FileUploader() {
   }
 
   const handleFileUpload = async (file: File) => {
+    // Check if user has upload credits (only for basic accounts)
+    if (accountType === "basic" && uploadCredits <= 0) {
+      setError("You've used all your upload credits for this month. Upgrade to Pro for unlimited uploads.")
+      return
+    }
+
+    // Check file type based on account type and role
+    const fileExt = file.name.split(".").pop()?.toLowerCase()
+    const allowedTypes = getSupportedFileTypes(accountType as any, userRole as any)
+
+    if (fileExt && !allowedTypes.includes(fileExt)) {
+      setError(
+        `Your ${accountType} account doesn't support ${fileExt.toUpperCase()} files. ${accountType === "basic" && !userRole ? "Upgrade to Pro for additional file format support." : ""}`,
+      )
+      return
+    }
+
     try {
       setFileName(file.name)
       setIsUploading(true)
       setError(null)
-
-      // Check if user is authenticated
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error("You must be logged in to upload files")
-      }
 
       // Start progress simulation
       let progress = 0
@@ -66,23 +81,21 @@ export function FileUploader() {
         setUploadProgress(Math.min(progress, 90)) // Cap at 90% until actual upload completes
       }, 100)
 
-      // Generate a unique file path
-      const fileExt = file.name.split(".").pop()
-      const filePath = `${user.id}/${uuidv4()}.${fileExt}`
+      // In a real app, we would upload the file to storage here
+      // For demo purposes, we'll just simulate the upload
 
-      // Upload file to Supabase Storage
-      await uploadFile(file, filePath)
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Create analysis record in database
-      const analysis = await createAnalysis({
-        user_id: user.id,
-        file_name: file.name,
-        file_type: file.type,
-        status: "processing",
-        summary: null,
-        insights: null,
-        recommendations: null,
-      })
+      // Update user's upload credits in localStorage (only for basic accounts)
+      if (accountType === "basic") {
+        const userDataStr = localStorage.getItem("daytaTechUser")
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr)
+          userData.uploadCredits = (userData.uploadCredits || 10) - 1
+          localStorage.setItem("daytaTechUser", JSON.stringify(userData))
+        }
+      }
 
       // Complete progress
       clearInterval(progressInterval)
@@ -90,7 +103,8 @@ export function FileUploader() {
 
       // Redirect to analysis page after upload completes
       setTimeout(() => {
-        window.location.href = `/analysis/${analysis.id}`
+        const analysisId = uuidv4()
+        window.location.href = `/analysis/${analysisId}`
       }, 500)
     } catch (err) {
       console.error("Error uploading file:", err)
@@ -99,51 +113,91 @@ export function FileUploader() {
     }
   }
 
+  // Determine if user has access to all file formats
+  const hasAllFileFormats = userRole === "data-scientist" || userRole === "data-engineer" || accountType !== "basic"
+
   return (
-    <div
-      className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-        isDragging ? "border-purple-500 bg-purple-50" : "border-gray-300"
-      }`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {isUploading ? (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <FileUp className="h-5 w-5 text-purple-600" />
-            <span className="font-medium">{fileName}</span>
-          </div>
-          <Progress value={uploadProgress} className="h-2 w-full" />
-          <p className="text-sm text-gray-500">Uploading and analyzing... {uploadProgress}%</p>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center text-center py-8">
-          <div className="mb-4 rounded-full bg-purple-100 p-3">
-            <Upload className="h-6 w-6 text-purple-600" />
-          </div>
-          <h3 className="mb-2 text-lg font-semibold">Upload your data file</h3>
-          <p className="mb-4 text-sm text-gray-500 max-w-md">
-            Drag and drop your file here, or click to browse. We support CSV, Excel, Power BI exports, Tableau exports,
-            and more.
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button as="label" htmlFor="file-upload">
-              <Upload className="mr-2 h-4 w-4" />
-              Browse Files
-              <input
-                id="file-upload"
-                type="file"
-                className="sr-only"
-                accept=".csv,.xlsx,.xls,.json,.pbix,.twb"
-                onChange={handleFileChange}
-              />
-            </Button>
-          </div>
-          <p className="mt-4 text-xs text-gray-500">Maximum file size: 50MB</p>
-          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-        </div>
+    <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
+
+      <div
+        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+          isDragging ? "border-purple-500 bg-purple-50" : "border-gray-300"
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {isUploading ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <FileUp className="h-5 w-5 text-purple-600" />
+              <span className="font-medium">{fileName}</span>
+            </div>
+            <Progress value={uploadProgress} className="h-2 w-full" />
+            <p className="text-sm text-gray-500">Uploading and analyzing... {uploadProgress}%</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center py-8">
+            <div className="mb-4 rounded-full bg-purple-100 p-3">
+              <Upload className="h-6 w-6 text-purple-600" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold">Upload your data file</h3>
+            <p className="mb-4 text-sm text-gray-500 max-w-md">
+              Drag and drop your file here, or click to browse.
+              {userRole === "data-scientist"
+                ? " As a Data Scientist, you have access to all file formats."
+                : userRole === "data-engineer"
+                  ? " As a Data Engineer, you have access to all file formats."
+                  : accountType === "basic"
+                    ? " Your Basic plan supports CSV and Excel files."
+                    : " We support CSV, Excel, Power BI exports, Tableau exports, and more."}
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button as="label" htmlFor="file-upload">
+                <Upload className="mr-2 h-4 w-4" />
+                Browse Files
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="sr-only"
+                  accept={hasAllFileFormats ? ".csv,.xlsx,.xls,.json,.pbix,.twb,.txt,.xml,.parquet" : ".csv,.xlsx,.xls"}
+                  onChange={handleFileChange}
+                />
+              </Button>
+            </div>
+            <p className="mt-4 text-xs text-gray-500">
+              {accountType === "basic"
+                ? `${uploadCredits} upload${uploadCredits !== 1 ? "s" : ""} remaining this month • ${exportCredits} export${exportCredits !== 1 ? "s" : ""} remaining • Maximum file size: 50MB`
+                : accountType === "pro"
+                  ? "Unlimited uploads and exports • All file formats supported • Maximum file size: 100MB"
+                  : "Unlimited uploads and exports • All file formats supported • Maximum file size: 500MB"}
+            </p>
+
+            {userRole === "data-scientist" && accountType === "basic" && (
+              <div className="mt-4 text-xs text-purple-600 bg-purple-50 p-2 rounded-md border border-purple-100 max-w-md">
+                <p className="font-medium">Data Scientist Special Features:</p>
+                <p>You have access to all file formats, industry-specific insights, and executive summaries.</p>
+              </div>
+            )}
+
+            {userRole === "data-engineer" && accountType === "basic" && (
+              <div className="mt-4 text-xs text-blue-600 bg-blue-50 p-2 rounded-md border border-blue-100 max-w-md">
+                <p className="font-medium">Data Engineer Special Features:</p>
+                <p>
+                  You have access to all file formats, pipeline insights, architecture recommendations, and performance
+                  optimization guidance.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

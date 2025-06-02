@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { createAccount } from "@/lib/account-utils"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -25,7 +26,8 @@ export default function SignupPage() {
     password: "",
     company: "",
     industry: "",
-    customIndustry: "", // Add this new field
+    customIndustry: "",
+    role: "",
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,11 +43,15 @@ export default function SignupPage() {
     setFormData((prev) => ({ ...prev, customIndustry: e.target.value }))
   }
 
+  const handleRoleChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, role: value }))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validate form
-    const requiredFields = ["firstName", "lastName", "email", "password", "industry"]
+    const requiredFields = ["firstName", "lastName", "email", "password", "industry", "role"]
     const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
 
     if (missingFields.length > 0) {
@@ -92,21 +98,35 @@ export default function SignupPage() {
     setIsLoading(true)
     setTimeout(() => {
       setIsLoading(false)
-      toast({
-        title: "Account created!",
-        description: "Welcome to DaytaTech. You're now signed in.",
-      })
 
-      // Store user info in localStorage for demo purposes
-      localStorage.setItem(
-        "daytaTechUser",
-        JSON.stringify({
-          name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          industry: formData.industry === "other" ? formData.customIndustry : formData.industry,
-          company: formData.company || "Not specified",
-        }),
-      )
+      // Create user account with special features based on role
+      const industry = formData.industry === "other" ? formData.customIndustry : formData.industry
+      const role = formData.role as "data-scientist" | "data-engineer"
+      const name = `${formData.firstName} ${formData.lastName}`
+
+      // Create account with appropriate features based on role
+      const userData = createAccount(name, formData.email, industry, formData.company || "Not specified", "basic", role)
+
+      // Store in localStorage
+      localStorage.setItem("daytaTechUser", JSON.stringify(userData))
+
+      // Show appropriate toast message
+      if (role === "data-scientist") {
+        toast({
+          title: "Data Scientist Account Created!",
+          description: "Welcome to DaytaTech. Your account includes premium data science features.",
+        })
+      } else if (role === "data-engineer") {
+        toast({
+          title: "Data Engineer Account Created!",
+          description: "Welcome to DaytaTech. Your account includes premium data engineering features.",
+        })
+      } else {
+        toast({
+          title: "Account created!",
+          description: "Welcome to DaytaTech. You're now signed in with a Basic plan.",
+        })
+      }
 
       // Redirect to dashboard
       router.push("/dashboard")
@@ -124,7 +144,9 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit}>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-            <CardDescription>Enter your information to create a DaytaTech account</CardDescription>
+            <CardDescription>
+              Start with our Basic plan at $39/month - includes 10 file uploads and 5 exports per month
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -202,6 +224,59 @@ export default function SignupPage() {
                 />
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="role">
+                Your Role <span className="text-red-500">*</span>
+              </Label>
+              <Select onValueChange={handleRoleChange} value={formData.role}>
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="data-scientist">Data Scientist</SelectItem>
+                  <SelectItem value="data-engineer">Data Engineer</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {formData.role === "data-scientist" && (
+                <div className="mt-2 text-xs text-purple-600 bg-purple-50 p-2 rounded-md border border-purple-100">
+                  <p className="font-medium">Data Scientist Bonus Features:</p>
+                  <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                    <li>AI industry-specific insights</li>
+                    <li>Advanced data analysis</li>
+                    <li>Universal file format support</li>
+                    <li>Executive summaries</li>
+                  </ul>
+                </div>
+              )}
+
+              {formData.role === "data-engineer" && (
+                <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded-md border border-blue-100">
+                  <p className="font-medium">Data Engineer Bonus Features:</p>
+                  <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                    <li>AI pipeline development insights</li>
+                    <li>Data architecture recommendations</li>
+                    <li>Data transformation & processing insights</li>
+                    <li>Data governance & security insights</li>
+                    <li>Performance tuning & optimizations</li>
+                    <li>AI-supported data cleaning recommendations</li>
+                    <li>Universal file format support</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg bg-green-50 p-4 border border-green-200">
+              <div className="text-sm font-medium text-green-800 mb-2">Basic Plan - $39/month</div>
+              <ul className="text-xs text-green-700 space-y-1">
+                <li>• 10 file uploads per month</li>
+                <li>• 5 data exports per month</li>
+                <li>• Basic AI insights</li>
+                <li>• CSV and Excel support</li>
+                <li>• Email support</li>
+              </ul>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button className="w-full" type="submit" disabled={isLoading}>
@@ -211,7 +286,7 @@ export default function SignupPage() {
                   Creating account...
                 </>
               ) : (
-                "Create account"
+                "Start Basic Plan - $39/month"
               )}
             </Button>
             <div className="text-center text-sm">
@@ -219,6 +294,9 @@ export default function SignupPage() {
               <Link href="/login" className="text-purple-600 hover:underline">
                 Log in
               </Link>
+            </div>
+            <div className="text-center text-xs text-gray-500">
+              By creating an account, you agree to our Terms of Service and Privacy Policy. Cancel anytime.
             </div>
           </CardFooter>
         </form>
