@@ -64,9 +64,11 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button size="lg" className="gap-1" onClick={() => handlePlanSelect("pro")}>
-                    Start Free Trial <ArrowRight className="h-4 w-4" />
-                  </Button>
+                  <Link href="/signup">
+                    <Button size="lg" className="gap-1">
+                      Start Free Trial <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href="/demo">
                     <Button size="lg" variant="outline">
                       See How It Works
@@ -695,7 +697,8 @@ export default function Home() {
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
-                        xmlns="http://www.w3.org/24"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
@@ -874,9 +877,11 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Button size="lg" variant="secondary" className="gap-1" onClick={() => handlePlanSelect("pro")}>
-                  Start Free Trial <ArrowRight className="h-4 w-4" />
-                </Button>
+                <Link href="/signup">
+                  <Button size="lg" variant="secondary" className="gap-1">
+                    Start Free Trial <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
                   Contact Sales
                 </ContactSalesButton>
