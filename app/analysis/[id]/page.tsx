@@ -1,160 +1,34 @@
-import Link from "next/link"
-import { ArrowLeft, BarChart3, Download, FileText, Share2 } from "lucide-react"
+import { generateRecommendations } from "@/lib/ai-service"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AnalysisSummary } from "@/components/analysis-summary"
-import { DataTable } from "@/components/data-table"
-import { InsightCards } from "@/components/insight-cards"
-import { RecommendationsList } from "@/components/recommendations-list"
-
-// This would normally come from the user's session or database
-const getUserMembershipLevel = (userId: string): "free" | "pro" | "team" => {
-  // Mock implementation - in a real app, this would check the user's subscription
-  // For demo purposes, we'll return different levels based on the analysis ID
-  const id = Number.parseInt(userId.replace(/\D/g, "") || "0")
-  if (id % 3 === 0) return "team"
-  if (id % 3 === 1) return "pro"
-  return "free"
+interface Props {
+  params: { id: string }
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
-export default function AnalysisPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch the analysis data and user info
-  // For demo purposes, we'll use the ID to determine membership level
-  const membershipLevel = getUserMembershipLevel(params.id)
-  const industry = "technology" // This would normally come from user profile
+async function AnalysisPage({ params, searchParams }: Props) {
+  const id = params.id
+  const query = searchParams?.query
+
+  let recommendations = null
+
+  if (query) {
+    recommendations = await generateRecommendations(query)
+  }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-xl font-bold">DaytaTech</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/dashboard" className="text-sm font-medium hover:underline underline-offset-4">
-              Dashboard
-            </Link>
-            <Link href="/dashboard/history" className="text-sm font-medium hover:underline underline-offset-4">
-              History
-            </Link>
-            <Link href="/dashboard/settings" className="text-sm font-medium hover:underline underline-offset-4">
-              Settings
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              Help
-            </Button>
-            <Button variant="ghost" size="sm">
-              Account
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="flex-1 container py-6">
-        <div className="flex flex-col gap-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" asChild>
-                <Link href="/dashboard">
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Analysis Results</h1>
-                <p className="text-gray-500">Sample Data Analysis - {params.id}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Share2 className="mr-2 h-4 w-4" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
-            </div>
-          </div>
+    <div>
+      <h1>Analysis Page</h1>
+      <p>ID: {id}</p>
+      <p>Query: {query}</p>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Executive Summary</CardTitle>
-              <CardDescription>AI-generated summary of the key insights from your data.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AnalysisSummary />
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="insights" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-4">
-              <TabsTrigger value="insights">Insights</TabsTrigger>
-              <TabsTrigger value="data">Data</TabsTrigger>
-              <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-            </TabsList>
-            <TabsContent value="insights" className="mt-6">
-              <InsightCards />
-            </TabsContent>
-            <TabsContent value="data" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Data Overview</CardTitle>
-                  <CardDescription>Preview of the data used for this analysis.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <DataTable />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="recommendations" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recommendations</CardTitle>
-                  <CardDescription>AI-generated recommendations based on your data.</CardDescription>
-                  <div className="mt-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        membershipLevel === "free"
-                          ? "bg-gray-100 text-gray-800"
-                          : membershipLevel === "pro"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {membershipLevel === "free" ? "Free Plan" : membershipLevel === "pro" ? "Pro Plan" : "Team Plan"}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <RecommendationsList analysisId={params.id} industry={industry} membershipLevel={membershipLevel} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="history" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analysis History</CardTitle>
-                  <CardDescription>Previous versions of this analysis.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <FileText className="h-12 w-12 text-gray-300" />
-                    <h3 className="mt-4 text-lg font-semibold">No Previous Versions</h3>
-                    <p className="mt-2 text-sm text-gray-500 max-w-md">
-                      This is the first analysis of this data file. Future analyses of the same file will appear here.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+      {recommendations && (
+        <div>
+          <h2>Recommendations:</h2>
+          <pre>{JSON.stringify(recommendations, null, 2)}</pre>
         </div>
-      </main>
+      )}
     </div>
   )
 }
+
+export default AnalysisPage
