@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase"
+import { getSupabaseClient } from "@/lib/supabase"
 import { SubscriptionCard } from "@/components/subscription/subscription-card"
 import { OrganizationSelector } from "@/components/organization/organization-selector"
 import { ProjectGrid } from "@/components/projects/project-grid"
@@ -16,7 +16,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function getUser() {
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
