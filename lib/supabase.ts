@@ -1,9 +1,24 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Using the provided credentials
-const supabaseUrl = "https://iffgjxecggkzfrjliohv.supabase.co"
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmZmdqeGVjZ2dremZyamxpb2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODIxNzYsImV4cCI6MjA2MzM1ODE3Nn0.vMaIDTfVuy4CMotS6FXrR624M4wU0tE4gLQl9A-hMus"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Create a single supabase client for the entire app
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Named export for createClient function
+export { createClient }
+
+// Server-side client for admin operations
+export const createServerClient = () => {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
+
+// Client-side singleton
+let supabaseClient: ReturnType<typeof createClient> | null = null
+
+export const getSupabaseClient = () => {
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return supabaseClient
+}

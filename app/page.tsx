@@ -105,7 +105,9 @@ export default function Home() {
                 <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">Features</div>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">The Grammarly for Data Reports</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  A lightweight, low-friction tool that adds an intelligence layer to your business reporting workflow.
+                  Unlike complex BI platforms or generic AI chatbots, DaytaTech is purpose-built for business
+                  intelligence. It's the missing layer between your raw data and actionable insights—no dashboards, no
+                  SQL, no weeks of setup.
                 </p>
               </div>
             </div>
@@ -556,8 +558,7 @@ export default function Home() {
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
+                        xmlns="http://www.w3.org/24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
@@ -621,10 +622,44 @@ export default function Home() {
                   <CardTitle>Is my data secure?</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <p className="text-gray-500 mb-3">
+                    <strong>For Individual Users:</strong> We use enterprise-grade AES-256 encryption for all data in
+                    transit and at rest. Your files are processed in isolated environments and automatically deleted
+                    after analysis. We never store your raw data permanently or share it with third parties.
+                  </p>
+                  <p className="text-gray-500 mb-3">
+                    <strong>For Enterprise Customers:</strong> We offer additional security features including SSO
+                    integration, custom data retention policies, on-premise deployment options, SOC 2 Type II
+                    compliance, and dedicated security reviews. Your data can be processed in your own cloud environment
+                    if required.
+                  </p>
                   <p className="text-gray-500">
-                    Yes. We use enterprise-grade encryption for all data in transit and at rest. Your data is never
-                    shared with third parties, and we maintain strict access controls. We also offer data deletion
-                    options to comply with privacy regulations.
+                    <strong>Privacy Compliance:</strong> We're fully GDPR and CCPA compliant with built-in data deletion
+                    tools, audit trails, and user consent management. All processing is logged and can be reviewed for
+                    compliance purposes.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>What enterprise security features are available?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500 mb-2">
+                    <strong>Access Control:</strong> Role-based permissions, SSO integration (SAML, OIDC), multi-factor
+                    authentication, and IP whitelisting.
+                  </p>
+                  <p className="text-gray-500 mb-2">
+                    <strong>Data Protection:</strong> End-to-end encryption, zero-trust architecture, data residency
+                    controls, and custom retention policies.
+                  </p>
+                  <p className="text-gray-500 mb-2">
+                    <strong>Compliance:</strong> SOC 2 Type II, ISO 27001, GDPR, HIPAA-ready configurations, and regular
+                    security audits.
+                  </p>
+                  <p className="text-gray-500">
+                    <strong>Monitoring:</strong> Real-time security monitoring, detailed audit logs, anomaly detection,
+                    and incident response procedures.
                   </p>
                 </CardContent>
               </Card>
@@ -637,6 +672,37 @@ export default function Home() {
                     Not at all! DaytaTech is designed for business users without technical expertise. Simply upload your
                     data files, and our AI does the rest, providing clear, actionable insights without requiring you to
                     write queries or formulas.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>How is DaytaTech different from other AI data tools?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500 mb-3">
+                    <strong>Unlike ChatGPT or Claude:</strong> DaytaTech is purpose-built for business data analysis,
+                    not general conversation. It understands business metrics, industry contexts, and provides
+                    structured insights rather than conversational responses.
+                  </p>
+                  <p className="text-gray-500 mb-3">
+                    <strong>Unlike Tableau or Power BI:</strong> No dashboard creation required. DaytaTech focuses on
+                    extracting insights, not building visualizations. It's the "analysis layer" that sits on top of your
+                    existing tools.
+                  </p>
+                  <p className="text-gray-500 mb-3">
+                    <strong>Unlike Traditional BI Tools:</strong> Zero technical setup. No SQL queries, no data
+                    modeling, no complex configurations. Upload your file and get insights in minutes, not weeks.
+                  </p>
+                  <p className="text-gray-500 mb-3">
+                    <strong>Unlike Generic AI Platforms:</strong> Industry-specific intelligence that learns your
+                    business context. Our AI understands the difference between retail metrics and SaaS metrics,
+                    manufacturing KPIs and healthcare analytics.
+                  </p>
+                  <p className="text-gray-500">
+                    <strong>The "Grammarly for Data" Approach:</strong> Just as Grammarly doesn't replace Word but makes
+                    your writing better, DaytaTech doesn't replace your existing tools—it makes your data analysis
+                    smarter and faster.
                   </p>
                 </CardContent>
               </Card>

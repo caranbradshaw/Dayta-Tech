@@ -5,7 +5,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { BarChart3, Save } from "lucide-react"
+import { BarChart3, Save, HelpCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +14,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import { UpgradeAccountModal } from "@/components/upgrade-account-modal"
+import { ContactSupportModal } from "@/components/contact-support-modal"
+import { PaymentInfoCard } from "@/components/payment-info-card"
+import { UsageStatsCard } from "@/components/usage-stats-card"
+import { AccountSecurityCard } from "@/components/account-security-card"
 
 interface UserData {
   name: string
@@ -34,6 +39,9 @@ export default function SettingsPage() {
     company: "",
     industry: "",
   })
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showSupportModal, setShowSupportModal] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in
@@ -163,10 +171,12 @@ export default function SettingsPage() {
           </div>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5">
               <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="industry">Industry</TabsTrigger>
-              <TabsTrigger value="preferences">Preferences</TabsTrigger>
+              <TabsTrigger value="account">Account</TabsTrigger>
+              <TabsTrigger value="usage">Usage</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
+              <TabsTrigger value="support">Support</TabsTrigger>
             </TabsList>
             <TabsContent value="profile" className="mt-6">
               <Card>
@@ -338,9 +348,51 @@ export default function SettingsPage() {
                 </CardFooter>
               </Card>
             </TabsContent>
+            <TabsContent value="account" className="mt-6">
+              <div className="space-y-6">
+                <PaymentInfoCard userData={userData} />
+                <UsageStatsCard userData={userData} onUpgrade={() => setShowUpgradeModal(true)} />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="usage" className="mt-6">
+              <UsageStatsCard userData={userData} onUpgrade={() => setShowUpgradeModal(true)} detailed />
+            </TabsContent>
+
+            <TabsContent value="security" className="mt-6">
+              <AccountSecurityCard userData={userData} />
+            </TabsContent>
+
+            <TabsContent value="support" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Contact Support</CardTitle>
+                  <CardDescription>Get help with your account or technical issues.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button onClick={() => setShowSupportModal(true)} className="w-full">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Contact Support Team
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </main>
+      {showUpgradeModal && (
+        <UpgradeAccountModal
+          onClose={() => setShowUpgradeModal(false)}
+          onSuccess={() => {
+            setShowUpgradeModal(false)
+            // Refresh user data
+            const updatedUserData = JSON.parse(localStorage.getItem("daytaTechUser") || "{}")
+            setUserData(updatedUserData)
+          }}
+        />
+      )}
+
+      {showSupportModal && <ContactSupportModal onClose={() => setShowSupportModal(false)} />}
     </div>
   )
 }

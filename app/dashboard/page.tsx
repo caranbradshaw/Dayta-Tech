@@ -1,694 +1,84 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { BarChart3, FileUp, Settings, Upload, Download, Sparkles, Cog, Clock, CreditCard } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileUploader } from "@/components/file-uploader"
-import { RecentAnalyses } from "@/components/recent-analyses"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { calculateDaysRemaining, isTrialActive } from "@/lib/account-utils"
-
-interface UserData {
-  name: string
-  email: string
-  industry: string
-  company: string
-  role?: string
-  accountType?: string
-  trialStatus?: string
-  trialEndDate?: string
-  isTrialActive?: boolean
-  requiresPayment?: boolean
-  uploadCredits?: number
-  exportCredits?: number
-  features?: {
-    basicInsights: boolean
-    csvSupport: boolean
-    excelSupport: boolean
-    advancedInsights: boolean
-    allFileFormats: boolean
-    industrySpecificAnalysis: boolean
-    historicalLearning: boolean
-    teamCollaboration: boolean
-    prioritySupport: boolean
-    executiveSummaries: boolean
-    pipelineInsights: boolean
-    architectureRecommendations: boolean
-    dataTransformationInsights: boolean
-    governanceAndSecurity: boolean
-    performanceOptimization: boolean
-    dataCleaningRecommendations: boolean
-  }
-  createdAt?: string
-}
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase"
+import { SubscriptionCard } from "@/components/subscription/subscription-card"
+import { OrganizationSelector } from "@/components/organization/organization-selector"
+import { ProjectGrid } from "@/components/projects/project-grid"
+import { InsightsDashboard } from "@/components/insights/insights-dashboard"
+import type { Project } from "@/types/database"
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const [userData, setUserData] = useState<UserData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("")
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is logged in
-    const userDataStr = localStorage.getItem("daytaTechUser")
-
-    if (userDataStr) {
-      try {
-        const parsedUserData = JSON.parse(userDataStr)
-        setUserData(parsedUserData)
-      } catch (error) {
-        console.error("Failed to parse user data:", error)
-      }
-    } else {
-      // Redirect to login if no user data found
-      router.push("/login")
+    async function getUser() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
     }
+    getUser()
+  }, [])
 
-    setIsLoading(false)
-  }, [router])
-
-  const handleLogout = () => {
-    localStorage.removeItem("daytaTechUser")
-    router.push("/")
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-8">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
+            <div className="h-96 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Please sign in to continue</h1>
+        </div>
+      </div>
+    )
   }
-
-  if (!userData) {
-    return null // Will redirect to login
-  }
-
-  // Get account type display information
-  const accountType = userData.accountType || "basic"
-  const userRole = userData.role
-  const isDataScientist = userRole === "data-scientist"
-  const isDataEngineer = userRole === "data-engineer"
-
-  // Trial information
-  const trialActive = userData.trialEndDate ? isTrialActive(userData.trialEndDate) : false
-  const daysRemaining = userData.trialEndDate ? calculateDaysRemaining(userData.trialEndDate) : 0
-
-  const accountBadgeColor =
-    accountType === "basic"
-      ? "bg-green-100 text-green-800"
-      : accountType === "pro"
-        ? "bg-purple-100 text-purple-800"
-        : accountType === "team"
-          ? "bg-blue-100 text-blue-800"
-          : "bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800"
-
-  const accountLabel = trialActive
-    ? `Free Trial (${daysRemaining} days left)`
-    : accountType === "basic"
-      ? isDataScientist
-        ? "Basic Plan + Data Science Features"
-        : isDataEngineer
-          ? "Basic Plan + Data Engineering Features"
-          : "Basic Plan"
-      : accountType === "pro"
-        ? "Pro Plan"
-        : accountType === "team"
-          ? "Team Plan"
-          : "Enterprise Plan"
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-xl font-bold">DaytaTech</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/dashboard" className="text-sm font-medium text-purple-600 hover:underline underline-offset-4">
-              Dashboard
-            </Link>
-            <Link href="/dashboard/history" className="text-sm font-medium hover:underline underline-offset-4">
-              History
-            </Link>
-            <Link href="/dashboard/settings" className="text-sm font-medium hover:underline underline-offset-4">
-              Settings
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <div className="text-sm font-medium mr-2">
-              Welcome, {userData.name.split(" ")[0]}
-              {isDataScientist && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                  Data Scientist
-                </span>
-              )}
-              {isDataEngineer && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                  Data Engineer
-                </span>
-              )}
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="flex-1 container py-6">
-        <div className="flex flex-col gap-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-              <p className="text-gray-500">Upload your data files and get AI-powered insights instantly.</p>
-            </div>
-            <Badge className={accountBadgeColor}>{accountLabel}</Badge>
-          </div>
+    <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <OrganizationSelector userId={user.id} selectedOrgId={selectedOrgId} onOrganizationChange={setSelectedOrgId} />
+      </div>
 
-          {/* Trial Status Alert */}
-          {trialActive && (
-            <Alert className="border-blue-200 bg-blue-50">
-              <Clock className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                <strong>Free Trial Active:</strong> You have {daysRemaining} days remaining in your free trial. After
-                that, you'll be charged $39/month for the Basic plan.{" "}
-                <Button variant="link" className="p-0 h-auto text-blue-600 underline">
-                  Add payment method
-                </Button>
-              </AlertDescription>
-            </Alert>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {selectedOrgId && (
+            <>
+              <ProjectGrid organizationId={selectedOrgId} userId={user.id} onProjectSelect={setSelectedProject} />
+
+              {selectedProject && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold">Insights for {selectedProject.name}</h3>
+                  <InsightsDashboard projectId={selectedProject.id} />
+                </div>
+              )}
+            </>
           )}
-
-          {/* Trial Expired Alert */}
-          {!trialActive && userData.trialStatus === "active" && (
-            <Alert className="border-red-200 bg-red-50">
-              <CreditCard className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                <strong>Trial Expired:</strong> Your free trial has ended. Please add a payment method to continue using
-                DaytaTech.{" "}
-                <Button variant="link" className="p-0 h-auto text-red-600 underline">
-                  Add payment method now
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="upload">Upload</TabsTrigger>
-              <TabsTrigger value="recent">Recent</TabsTrigger>
-              <TabsTrigger value="insights">Insights</TabsTrigger>
-            </TabsList>
-            <TabsContent value="upload" className="mt-6">
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="col-span-1 md:col-span-2 lg:col-span-3">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>Upload Data File</CardTitle>
-                        <CardDescription>
-                          Upload your data file to get started.
-                          {isDataScientist
-                            ? " As a Data Scientist, you have access to all file formats and advanced analytics."
-                            : isDataEngineer
-                              ? " As a Data Engineer, you have access to all file formats and engineering insights."
-                              : " We support CSV, Excel, JSON and more depending on your plan."}
-                        </CardDescription>
-                      </div>
-                      <div className="text-right space-y-2">
-                        {userData.uploadCredits !== undefined && (
-                          <div>
-                            <span className="text-sm text-gray-500">Uploads remaining this month</span>
-                            <div className="text-2xl font-bold">
-                              {accountType === "basic" ? `${userData.uploadCredits} / 10` : "Unlimited"}
-                            </div>
-                          </div>
-                        )}
-                        {userData.exportCredits !== undefined && (
-                          <div>
-                            <span className="text-sm text-gray-500">Exports remaining this month</span>
-                            <div className="text-2xl font-bold">
-                              {accountType === "basic" ? `${userData.exportCredits} / 5` : "Unlimited"}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <FileUploader
-                      accountType={accountType}
-                      uploadCredits={userData.uploadCredits || 0}
-                      exportCredits={userData.exportCredits || 0}
-                      userRole={userData.role}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            <TabsContent value="recent" className="mt-6">
-              <RecentAnalyses />
-            </TabsContent>
-            <TabsContent value="insights" className="mt-6">
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>No Insights Yet</CardTitle>
-                    <CardDescription>Upload a file to get started with AI-powered insights.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex justify-center py-6">
-                    <Button asChild>
-                      <Link href="/dashboard?tab=upload">
-                        <Upload className="mr-2 h-4 w-4" /> Upload File
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Analyses</CardTitle>
-                <FileUp className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-gray-500">Upload your first file to get started</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Uploads This Month</CardTitle>
-                <Upload className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {accountType === "basic" ? `${10 - (userData.uploadCredits || 10)} / 10` : "Unlimited"}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {accountType === "basic" ? `${userData.uploadCredits || 10} uploads remaining` : "No limits"}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Exports This Month</CardTitle>
-                <Download className="h-4 w-4 text-gray-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {accountType === "basic" ? `${5 - (userData.exportCredits || 5)} / 5` : "Unlimited"}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {accountType === "basic" ? `${userData.exportCredits || 5} exports remaining` : "No limits"}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{trialActive ? "Trial Status" : "Industry"}</CardTitle>
-                {trialActive ? (
-                  <Clock className="h-4 w-4 text-blue-500" />
-                ) : (
-                  <Settings className="h-4 w-4 text-gray-500" />
-                )}
-              </CardHeader>
-              <CardContent>
-                {trialActive ? (
-                  <>
-                    <div className="text-2xl font-bold text-blue-600">{daysRemaining}</div>
-                    <p className="text-xs text-blue-600">days remaining in trial</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold capitalize">{userData.industry || "Not Set"}</div>
-                    <p className="text-xs text-gray-500">
-                      <Link href="/dashboard/settings" className="text-purple-600 hover:underline">
-                        {userData.industry ? "Update" : "Set"} your industry
-                      </Link>{" "}
-                      for better insights
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Account Features</CardTitle>
-              <Settings className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold capitalize mb-2">
-                {trialActive ? "Free Trial" : accountType === "basic" ? "Basic Plan - $39/month" : "Premium Plan"}
-                {isDataScientist && (
-                  <span className="ml-2 text-sm font-normal text-purple-600">+ Data Science Features</span>
-                )}
-                {isDataEngineer && (
-                  <span className="ml-2 text-sm font-normal text-blue-600">+ Data Engineering Features</span>
-                )}
-              </div>
-
-              {isDataScientist && (
-                <div className="mb-4 p-3 bg-purple-50 border border-purple-100 rounded-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-purple-600" />
-                    <span className="font-medium text-purple-800">Data Scientist Special Features</span>
-                  </div>
-                  <ul className="text-sm space-y-1 text-purple-700">
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-purple-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>AI industry-specific insights</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-purple-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Advanced data analysis</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-purple-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Universal file format support</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-purple-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Executive summaries</span>
-                    </li>
-                  </ul>
-                </div>
-              )}
-
-              {isDataEngineer && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Cog className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium text-blue-800">Data Engineer Special Features</span>
-                  </div>
-                  <ul className="text-sm space-y-1 text-blue-700">
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>AI pipeline development insights</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Data architecture recommendations</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Data transformation & processing insights</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Data governance & security insights</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Performance tuning & optimizations</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>AI-supported data cleaning recommendations</span>
-                    </li>
-                    <li className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-blue-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      <span>Universal file format support</span>
-                    </li>
-                  </ul>
-                </div>
-              )}
-
-              <ul className="text-sm space-y-1">
-                <li className="flex items-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-green-500"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>10 file uploads per month</span>
-                </li>
-                <li className="flex items-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-green-500"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>5 data exports per month</span>
-                </li>
-                <li className="flex items-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-green-500"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>AI-powered insights & recommendations</span>
-                </li>
-                <li className="flex items-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-green-500"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>CSV, Excel, JSON support</span>
-                  {(isDataScientist || isDataEngineer) && (
-                    <span className="text-xs text-blue-600 ml-1">(+ all formats)</span>
-                  )}
-                </li>
-                <li className="flex items-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-green-500"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Executive summaries</span>
-                </li>
-                <li className="flex items-center gap-1">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 text-green-500"
-                  >
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Email support</span>
-                </li>
-              </ul>
-
-              {trialActive ? (
-                <Button variant="outline" size="sm" className="mt-4 w-full">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Add Payment Method
-                </Button>
-              ) : (
-                !isDataScientist &&
-                !isDataEngineer && (
-                  <Button variant="outline" size="sm" className="mt-4 w-full">
-                    Upgrade to Pro - $99/month
-                  </Button>
-                )
-              )}
-            </CardContent>
-          </Card>
         </div>
-      </main>
+
+        <div className="space-y-6">
+          <SubscriptionCard userId={user.id} />
+        </div>
+      </div>
     </div>
   )
 }
