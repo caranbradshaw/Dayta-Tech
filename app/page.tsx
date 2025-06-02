@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowRight, BarChart3, FileText, Zap } from "lucide-react"
+import { ArrowRight, BarChart3, FileText, Zap, Database, Brain, Users, TrendingUp, Shield } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,24 +56,34 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Transform Raw Data into Executive Insights
+                    Get Expert Data Insights Without the Expert
                   </h1>
                   <p className="max-w-[600px] text-gray-500 md:text-xl">
-                    No dashboards, formulas, or SQL required. DaytaTech uses AI to simplify, summarize, and extract
-                    insights from your business data.
+                    DaytaTech's AI gives you the analytical power of data engineers and data scientists—no technical
+                    skills required. Transform complex data into clear business insights that drive decisions.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Link href="/signup">
                     <Button size="lg" className="gap-1">
-                      Start Now <ArrowRight className="h-4 w-4" />
+                      Start Free Trial <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Link href="/demo">
                     <Button size="lg" variant="outline">
-                      Try Demo
+                      See How It Works
                     </Button>
                   </Link>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Shield className="h-4 w-4" />
+                    <span>No technical skills needed</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Expert-level insights</span>
+                  </div>
                 </div>
               </div>
               <div className="mx-auto lg:mx-0 relative">
@@ -83,20 +93,24 @@ export default function Home() {
                     <div className="h-2 w-10 rounded bg-purple-200"></div>
                   </div>
                   <div className="mt-4 grid gap-2">
-                    <div className="rounded-md bg-purple-100 p-3">
-                      <div className="font-medium">Key Insight</div>
-                      <div className="text-sm text-gray-500">Revenue increased by 24% in Q2 compared to Q1</div>
-                    </div>
                     <div className="rounded-md bg-blue-100 p-3">
-                      <div className="font-medium">Trend Detected</div>
+                      <div className="font-medium">Revenue Opportunity</div>
                       <div className="text-sm text-gray-500">
-                        Customer acquisition cost has decreased by 12% over the last 3 months
+                        Northeast region shows 34% higher conversion rates—increase marketing spend by $50K for
+                        projected $170K additional revenue
                       </div>
                     </div>
                     <div className="rounded-md bg-green-100 p-3">
-                      <div className="font-medium">Recommendation</div>
+                      <div className="font-medium">Cost Optimization</div>
                       <div className="text-sm text-gray-500">
-                        Increase marketing spend in the Northeast region based on conversion rates
+                        Customer acquisition cost decreased 18% in Q3—reallocate budget from low-performing channels
+                      </div>
+                    </div>
+                    <div className="rounded-md bg-purple-100 p-3">
+                      <div className="font-medium">Risk Alert</div>
+                      <div className="text-sm text-gray-500">
+                        Customer churn pattern detected in enterprise segment—implement retention strategy within 30
+                        days
                       </div>
                     </div>
                   </div>
@@ -113,47 +127,36 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">Features</div>
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">The Grammarly for Data Reports</h2>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Your AI Data Team in a Box</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Unlike complex BI platforms or generic AI chatbots, DaytaTech is purpose-built for business
-                  intelligence. It's the missing layer between your raw data and actionable insights—no dashboards, no
-                  SQL, no weeks of setup.
+                  Get the expertise of data engineers and data scientists without hiring them. Our AI analyzes your data
+                  like an expert team would, but delivers insights in plain English that anyone can understand and act
+                  on.
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <FileText className="h-6 w-6 text-purple-600" />
-                  <CardTitle>Universal File Support</CardTitle>
+                  <Brain className="h-6 w-6 text-purple-600" />
+                  <CardTitle>AI Data Scientist</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Import data from Power BI, Tableau, Excel, CSV, and more. No need to change your existing tools.
+                    Get advanced statistical analysis, trend detection, and predictive insights that typically require
+                    years of data science expertise—delivered in simple business language.
                   </CardDescription>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <Zap className="h-6 w-6 text-purple-600" />
-                  <CardTitle>AI-Powered Analysis</CardTitle>
+                  <Database className="h-6 w-6 text-purple-600" />
+                  <CardTitle>AI Data Engineer</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Automatically identify trends, patterns, outliers, and correlations in your data without complex
-                    queries.
-                  </CardDescription>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-purple-600" />
-                  <CardTitle>Industry-Specific Insights</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Our AI adapts to your industry and learns from your usage patterns to provide more relevant insights
-                    over time.
+                    Automatically clean, validate, and optimize your data quality. Get technical recommendations for
+                    better data management without needing engineering knowledge.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -164,7 +167,20 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Get clear, concise summaries of your data that highlight what matters most for decision-making.
+                    Transform complex data into clear, actionable executive summaries. Get the insights that matter for
+                    decision-making, not technical jargon.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center gap-2">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                  <CardTitle>Business Intelligence</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Identify revenue opportunities, cost savings, and business risks automatically. Get the strategic
+                    insights that drive growth and profitability.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -175,19 +191,20 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Designed for business users without data science expertise. No SQL, no formulas, no complex
-                    dashboards.
+                    Upload your data files and get expert-level analysis in minutes. No SQL, no coding, no complex
+                    dashboards—just clear insights you can act on immediately.
                   </CardDescription>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-purple-600" />
-                  <CardTitle>Historical Learning</CardTitle>
+                  <Users className="h-6 w-6 text-purple-600" />
+                  <CardTitle>Complements Your Team</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    The more you use DaytaTech, the smarter it gets about your business needs and reporting preferences.
+                    If you have data professionals, DaytaTech accelerates their work. If you don't, it gives you their
+                    expertise. Either way, you get faster, better insights.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -195,23 +212,135 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Feel Like You Have a Data Team</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Whether you're a startup without data expertise or an enterprise looking to democratize insights,
+                  DaytaTech gives everyone the power of expert data analysis.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    If You Have a Data Team
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
+                      </div>
+                      <span>
+                        <strong>Accelerate Analysis:</strong> Your data scientists get insights faster, freeing them for
+                        strategic work
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
+                      </div>
+                      <span>
+                        <strong>Democratize Insights:</strong> Business users get answers without waiting for data team
+                        availability
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
+                      </div>
+                      <span>
+                        <strong>Quality Assurance:</strong> AI validates findings and catches issues your team might
+                        miss
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
+                      </div>
+                      <span>
+                        <strong>Scale Expertise:</strong> Extend your team's capabilities across the entire organization
+                      </span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-purple-200 bg-purple-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-purple-600" />
+                    If You Don't Have a Data Team
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      </div>
+                      <span>
+                        <strong>Instant Expertise:</strong> Get data scientist-level insights without hiring expensive
+                        talent
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      </div>
+                      <span>
+                        <strong>No Learning Curve:</strong> Start getting insights immediately—no training or technical
+                        knowledge required
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      </div>
+                      <span>
+                        <strong>Cost Effective:</strong> Get expert analysis for a fraction of the cost of hiring data
+                        professionals
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      </div>
+                      <span>
+                        <strong>Competitive Advantage:</strong> Make data-driven decisions like companies with dedicated
+                        data teams
+                      </span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">Pricing</div>
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Simple, Transparent Pricing</h2>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Expert Data Analysis for Everyone</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Choose the plan that works best for your business needs.
+                  Get the power of data engineers and data scientists at a fraction of the cost of hiring them.
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-4 mt-12">
               <Card className="border-2 border-gray-200">
                 <CardHeader>
-                  <CardTitle>Basic</CardTitle>
+                  <CardTitle>Starter</CardTitle>
                   <div className="text-3xl font-bold">$39</div>
-                  <CardDescription>Per month, billed monthly</CardDescription>
+                  <CardDescription>Perfect for small businesses</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -230,7 +359,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>10 file uploads per month</span>
+                      <span>10 data analyses per month</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -247,7 +376,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>AI-powered insights & recommendations</span>
+                      <span>AI business insights & recommendations</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -264,7 +393,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>CSV, Excel, JSON support</span>
+                      <span>Excel, CSV, JSON support</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -311,9 +440,9 @@ export default function Home() {
                   <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800 mb-2">
                     Most Popular
                   </div>
-                  <CardTitle>Pro</CardTitle>
+                  <CardTitle>Professional</CardTitle>
                   <div className="text-3xl font-bold">$99</div>
-                  <CardDescription>Per month, billed monthly</CardDescription>
+                  <CardDescription>For growing businesses</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -332,7 +461,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Unlimited file uploads</span>
+                      <span>Unlimited data analyses</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -349,7 +478,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Advanced insights and recommendations</span>
+                      <span>Advanced AI insights & predictions</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -366,7 +495,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>All file formats supported</span>
+                      <span>All file formats + database connections</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -400,7 +529,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Historical data learning</span>
+                      <span>Priority support</span>
                     </li>
                   </ul>
                   <Button className="mt-6 w-full" onClick={() => handlePlanSelect("pro")}>
@@ -412,7 +541,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Team</CardTitle>
                   <div className="text-3xl font-bold">$499</div>
-                  <CardDescription>Per month, billed monthly</CardDescription>
+                  <CardDescription>For teams & departments</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -431,7 +560,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Everything in Pro</span>
+                      <span>Everything in Professional</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -448,7 +577,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Up to 5 team members</span>
+                      <span>Up to 10 team members</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -465,7 +594,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Team collaboration features</span>
+                      <span>Shared insights & collaboration</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -482,7 +611,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Priority support</span>
+                      <span>Advanced team analytics</span>
                     </li>
                   </ul>
                   <Button className="mt-6 w-full" onClick={() => handlePlanSelect("team")}>
@@ -494,7 +623,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Enterprise</CardTitle>
                   <div className="text-3xl font-bold">Custom</div>
-                  <CardDescription>Tailored for your organization</CardDescription>
+                  <CardDescription>For large organizations</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
@@ -547,7 +676,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>SSO & advanced security</span>
+                      <span>Custom AI training on your data</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -564,7 +693,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Dedicated support</span>
+                      <span>Dedicated success manager</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -581,7 +710,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Custom integrations</span>
+                      <span>On-premise deployment options</span>
                     </li>
                   </ul>
                   <ContactSalesButton className="mt-6 w-full bg-white text-black hover:bg-gray-100">
@@ -593,87 +722,18 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="faq" className="w-full py-12 md:py-24 lg:py-32">
+        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">FAQ</div>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Frequently Asked Questions</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Everything you need to know about DaytaTech.
+                  Everything you need to know about getting expert data insights without the experts.
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 mt-12">
-              <Card>
-                <CardHeader>
-                  <CardTitle>What file formats does DaytaTech support?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    DaytaTech supports all major data formats including CSV, Excel, Power BI exports, Tableau exports,
-                    JSON, and more. If you have a specific format not listed, contact us and we'll work to add support.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>How does the industry-specific analysis work?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    When you sign up, you'll select your industry. Our AI models are trained on industry-specific data
-                    patterns and metrics. As you use DaytaTech, the system learns your specific business context to
-                    provide even more relevant insights.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Is my data secure?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500 mb-3">
-                    <strong>For Individual Users:</strong> We use enterprise-grade AES-256 encryption for all data in
-                    transit and at rest. Your files are processed in isolated environments and automatically deleted
-                    after analysis. We never store your raw data permanently or share it with third parties.
-                  </p>
-                  <p className="text-gray-500 mb-3">
-                    <strong>For Enterprise Customers:</strong> We offer additional security features including SSO
-                    integration, custom data retention policies, on-premise deployment options, SOC 2 Type II
-                    compliance, and dedicated security reviews. Your data can be processed in your own cloud environment
-                    if required.
-                  </p>
-                  <p className="text-gray-500">
-                    <strong>Privacy Compliance:</strong> We're fully GDPR and CCPA compliant with built-in data deletion
-                    tools, audit trails, and user consent management. All processing is logged and can be reviewed for
-                    compliance purposes.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>What enterprise security features are available?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500 mb-2">
-                    <strong>Access Control:</strong> Role-based permissions, SSO integration (SAML, OIDC), multi-factor
-                    authentication, and IP whitelisting.
-                  </p>
-                  <p className="text-gray-500 mb-2">
-                    <strong>Data Protection:</strong> End-to-end encryption, zero-trust architecture, data residency
-                    controls, and custom retention policies.
-                  </p>
-                  <p className="text-gray-500 mb-2">
-                    <strong>Compliance:</strong> SOC 2 Type II, ISO 27001, GDPR, HIPAA-ready configurations, and regular
-                    security audits.
-                  </p>
-                  <p className="text-gray-500">
-                    <strong>Monitoring:</strong> Real-time security monitoring, detailed audit logs, anomaly detection,
-                    and incident response procedures.
-                  </p>
-                </CardContent>
-              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle>Do I need technical skills to use DaytaTech?</CardTitle>
@@ -681,63 +741,123 @@ export default function Home() {
                 <CardContent>
                   <p className="text-gray-500">
                     Not at all! DaytaTech is designed for business users without technical expertise. Simply upload your
-                    data files, and our AI does the rest, providing clear, actionable insights without requiring you to
-                    write queries or formulas.
+                    data files (Excel, CSV, etc.), and our AI does all the complex analysis. You get clear, actionable
+                    insights in plain English—no coding, SQL, or data science knowledge required.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>How is DaytaTech different from other AI data tools?</CardTitle>
+                  <CardTitle>How is this different from hiring data professionals?</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500 mb-3">
-                    <strong>Unlike ChatGPT or Claude:</strong> DaytaTech is purpose-built for business data analysis,
-                    not general conversation. It understands business metrics, industry contexts, and provides
-                    structured insights rather than conversational responses.
-                  </p>
-                  <p className="text-gray-500 mb-3">
-                    <strong>Unlike Tableau or Power BI:</strong> No dashboard creation required. DaytaTech focuses on
-                    extracting insights, not building visualizations. It's the "analysis layer" that sits on top of your
-                    existing tools.
-                  </p>
-                  <p className="text-gray-500 mb-3">
-                    <strong>Unlike Traditional BI Tools:</strong> Zero technical setup. No SQL queries, no data
-                    modeling, no complex configurations. Upload your file and get insights in minutes, not weeks.
-                  </p>
-                  <p className="text-gray-500 mb-3">
-                    <strong>Unlike Generic AI Platforms:</strong> Industry-specific intelligence that learns your
-                    business context. Our AI understands the difference between retail metrics and SaaS metrics,
-                    manufacturing KPIs and healthcare analytics.
-                  </p>
                   <p className="text-gray-500">
-                    <strong>The "Grammarly for Data" Approach:</strong> Just as Grammarly doesn't replace Word but makes
-                    your writing better, DaytaTech doesn't replace your existing tools—it makes your data analysis
-                    smarter and faster.
+                    <strong>Cost:</strong> Get expert-level analysis for $39-99/month vs. $100K+ annually for data
+                    professionals.
+                    <br />
+                    <br />
+                    <strong>Speed:</strong> Get insights in minutes, not weeks of project planning and execution.
+                    <br />
+                    <br />
+                    <strong>Availability:</strong> 24/7 access to analysis vs. limited availability of human experts.
+                    <br />
+                    <br />
+                    <strong>Scalability:</strong> Analyze unlimited datasets without hiring additional staff.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>What's the difference between Data Engineer and Data Scientist roles?</CardTitle>
+                  <CardTitle>What if I already have data engineers or data scientists?</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500 mb-3">
-                    <strong>Data Engineers</strong> focus on the technical infrastructure that makes data usable. They
-                    build and maintain data pipelines, ensure data quality, optimize storage systems, and create the
-                    foundation that enables data analysis. Think of them as the architects and builders of your data
-                    ecosystem.
-                  </p>
                   <p className="text-gray-500">
-                    <strong>Data Scientists</strong> focus on extracting business insights from data. They analyze
-                    trends, create predictive models, generate executive summaries, and translate data into actionable
-                    business recommendations. Think of them as the detectives who solve business problems using data.
+                    Perfect! DaytaTech complements your existing team by:
+                    <br />
+                    <br />• <strong>Accelerating their work:</strong> Get initial insights faster so they can focus on
+                    strategic projects
+                    <br />• <strong>Democratizing access:</strong> Business users get answers without waiting for data
+                    team availability
+                    <br />• <strong>Quality assurance:</strong> AI validates findings and catches potential issues
+                    <br />• <strong>Scaling expertise:</strong> Extend your team's capabilities across the organization
                   </p>
-                  <p className="text-gray-500 mt-3 text-sm">
-                    <em>
-                      DaytaTech provides specialized AI recommendations for both roles - technical optimization insights
-                      for Data Engineers and business intelligence insights for Data Scientists.
-                    </em>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>What types of insights can I expect?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    <strong>Revenue Opportunities:</strong> Identify high-performing segments, optimal pricing, market
+                    expansion opportunities
+                    <br />
+                    <br />
+                    <strong>Cost Optimization:</strong> Find inefficiencies, reduce waste, optimize resource allocation
+                    <br />
+                    <br />
+                    <strong>Risk Detection:</strong> Early warning signs for customer churn, market changes, operational
+                    issues
+                    <br />
+                    <br />
+                    <strong>Performance Analysis:</strong> Track KPIs, benchmark against industry standards, identify
+                    improvement areas
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>How accurate and reliable are the AI insights?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    Our AI is trained on thousands of business datasets and uses the same statistical methods that data
+                    scientists use. We provide confidence scores for all insights and clearly indicate when more data is
+                    needed for reliable conclusions. Many customers report that our insights match or exceed what they
+                    previously got from expensive consulting projects.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>What data formats do you support?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    We support all common business data formats: Excel (.xlsx, .xls), CSV, JSON, Google Sheets exports,
+                    and database exports. For Professional plans and above, we also support direct connections to
+                    databases, cloud storage, and business applications like Salesforce, HubSpot, and QuickBooks.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Is my business data secure?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    <strong>Data Protection:</strong> Enterprise-grade encryption, secure processing environments, and
+                    automatic data deletion after analysis.
+                    <br />
+                    <br />
+                    <strong>Privacy:</strong> We never store your raw data permanently or share it with third parties.
+                    Only statistical patterns and insights are retained.
+                    <br />
+                    <br />
+                    <strong>Compliance:</strong> SOC 2 Type II certified, GDPR and CCPA compliant, with audit trails for
+                    all data access.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Can I try it before committing to a paid plan?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    We offer a 30-day free trial with full access to all features. No credit card required to start. You
+                    can upload your own data and see exactly what insights you'll get. Most users know within the first
+                    few analyses whether DaytaTech will be valuable for their business.
                   </p>
                 </CardContent>
               </Card>
@@ -750,16 +870,16 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-                  Ready to Transform Your Data Experience?
+                  Ready to Feel Like You Have a Data Team?
                 </h2>
                 <p className="max-w-[900px] text-purple-100 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Join thousands of businesses that use DaytaTech to make better decisions faster.
+                  Join thousands of businesses getting expert-level data insights without the expert-level costs.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Link href="/signup">
                   <Button size="lg" variant="secondary" className="gap-1">
-                    Start Now - $39/month <ArrowRight className="h-4 w-4" />
+                    Start Free Trial <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
