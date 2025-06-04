@@ -3,15 +3,16 @@
 import type React from "react"
 
 import { useState } from "react"
-import { X, Check, CreditCard, Loader2, Calendar, Zap } from "lucide-react"
+import { X, Check, CreditCard, Calendar, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
-import { upgradeAccount, accountPricing, accountFeatures, type AccountType } from "@/lib/account-utils"
+import { accountPricing, accountFeatures, type AccountType } from "@/lib/account-utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter } from "next/navigation"
 
 interface UpgradeAccountModalProps {
   onClose: () => void
@@ -21,6 +22,7 @@ interface UpgradeAccountModalProps {
 
 export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }: UpgradeAccountModalProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [plan, setPlan] = useState<AccountType>(initialPlan)
   const [billingCycle, setBillingCycle] = useState("monthly")
@@ -38,37 +40,8 @@ export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }:
   }
 
   const handleStartTrial = () => {
-    setIsSubmitting(true)
-
-    // Simulate processing
-    setTimeout(() => {
-      // Update user account in localStorage with trial
-      const userDataStr = localStorage.getItem("daytaTechUser")
-      if (userDataStr) {
-        const userData = JSON.parse(userDataStr)
-        const updatedUser = upgradeAccount(userData, plan)
-        // Override trial status
-        updatedUser.trialStatus = "active"
-        updatedUser.isTrialActive = true
-        updatedUser.requiresPayment = false
-
-        // Set trial end date to 30 days from now
-        const trialEndDate = new Date()
-        trialEndDate.setDate(trialEndDate.getDate() + 30)
-        updatedUser.trialEndDate = trialEndDate.toISOString()
-
-        localStorage.setItem("daytaTechUser", JSON.stringify(updatedUser))
-
-        toast({
-          title: "Trial started!",
-          description: `Your 30-day free trial of the ${plan === "pro" ? "Pro" : plan === "team" ? "Team" : "Enterprise"} plan has started.`,
-        })
-
-        onSuccess()
-      }
-
-      setIsSubmitting(false)
-    }, 1500)
+    // Navigate immediately - no delays or processing
+    window.location.href = "/signup"
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -94,27 +67,8 @@ export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }:
       return
     }
 
-    setIsSubmitting(true)
-
-    // Simulate payment processing
-    setTimeout(() => {
-      // Update user account in localStorage
-      const userDataStr = localStorage.getItem("daytaTechUser")
-      if (userDataStr) {
-        const userData = JSON.parse(userDataStr)
-        const updatedUser = upgradeAccount(userData, plan)
-        localStorage.setItem("daytaTechUser", JSON.stringify(updatedUser))
-
-        toast({
-          title: "Account upgraded!",
-          description: `Your account has been upgraded from Basic ($39/month) to ${plan === "pro" ? "Pro" : plan === "team" ? "Team" : "Enterprise"}.`,
-        })
-
-        onSuccess()
-      }
-
-      setIsSubmitting(false)
-    }, 2000)
+    // Navigate immediately for payment flow too
+    window.location.href = "/signup"
   }
 
   const getPlanPrice = () => {
@@ -386,19 +340,8 @@ export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }:
                     </li>
                   </ul>
 
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={handleStartTrial}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Starting Trial...
-                      </>
-                    ) : (
-                      <>Start Your Free Trial</>
-                    )}
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleStartTrial}>
+                    Start Your Free Trial
                   </Button>
                 </div>
               </TabsContent>
@@ -459,18 +402,9 @@ export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }:
                   </div>
                 </div>
 
-                <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Upgrade Now
-                    </>
-                  )}
+                <Button className="w-full" onClick={handleSubmit}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Upgrade Now
                 </Button>
               </TabsContent>
             </Tabs>

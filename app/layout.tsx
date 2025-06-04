@@ -2,10 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { DemoWalkthrough } from "@/components/demo-walkthrough"
 import { Toaster } from "@/components/ui/toast"
-import { ContactSalesDialog } from "@/components/contact-sales-dialog"
-import { AuthProvider } from "@/components/auth-provider"
+import { AuthProvider } from "@/components/auth-context"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -17,17 +16,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          {children}
-          <DemoWalkthrough />
-          <ContactSalesDialog />
-          <Toaster />
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            {children}
+            <Toaster />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

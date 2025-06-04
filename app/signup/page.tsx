@@ -3,22 +3,22 @@
 import type React from "react"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { BarChart3, Loader2, Clock, Info, Database, FlaskConical } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight, BarChart3, Eye, EyeOff, Loader2, Check, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import { createAccount } from "@/lib/account-utils"
+import { signUp } from "@/lib/auth-utils"
 
 export default function SignupPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
@@ -27,137 +27,125 @@ export default function SignupPage() {
     password: "",
     company: "",
     industry: "",
-    customIndustry: "",
     role: "",
+    agreeToTerms: false,
   })
+
+  // Password strength validation
+  const getPasswordStrength = (password: string) => {
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    }
+
+    const score = Object.values(checks).filter(Boolean).length
+    return { checks, score }
+  }
+
+  const passwordStrength = getPasswordStrength(formData.password)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({ ...prev, [id]: value }))
   }
 
-  const handleIndustryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, industry: value }))
+  const handleSelectChange = (field: string) => (value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleCustomIndustryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, customIndustry: e.target.value }))
-  }
-
-  const handleRoleChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, role: value }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate form
-    const requiredFields = ["firstName", "lastName", "email", "password", "industry", "role"]
-    const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
-
-    if (missingFields.length > 0) {
+    // Validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       toast({
-        title: "Missing required fields",
-        description: "Please fill in all required fields to create your account.",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       })
       return
     }
 
-    // Check if custom industry is required but missing
-    if (formData.industry === "other" && !formData.customIndustry) {
+    if (passwordStrength.score < 3) {
       toast({
-        title: "Missing industry information",
-        description: "Please specify your industry.",
+        title: "Password Too Weak",
+        description: "Please create a stronger password.",
         variant: "destructive",
       })
       return
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
+    if (!formData.agreeToTerms) {
       toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
+        title: "Terms Agreement Required",
+        description: "Please agree to the Terms of Service and Privacy Policy to continue.",
         variant: "destructive",
       })
       return
     }
 
-    // Password validation (at least 6 characters)
-    if (formData.password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Simulate account creation
     setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
 
-      // Create user account with 30-day free trial
-      const industry = formData.industry === "other" ? formData.customIndustry : formData.industry
-      const role = formData.role as "data-scientist" | "data-engineer"
-      const name = `${formData.firstName} ${formData.lastName}`
+    try {
+      const result = await signUp(formData)
 
-      // Create account with 30-day trial
-      const userData = createAccount(name, formData.email, industry, formData.company || "Not specified", "basic", role)
-
-      // Store in localStorage
-      localStorage.setItem("daytaTechUser", JSON.stringify(userData))
-
-      // Show appropriate toast message
-      if (role === "data-scientist") {
+      if (result.success) {
         toast({
-          title: "Data Scientist Account Created!",
-          description: "Welcome to DaytaTech. Your 30-day free trial has started with premium data science features.",
+          title: "Account Created!",
+          description: "Please check your email to verify your account.",
         })
-      } else if (role === "data-engineer") {
-        toast({
-          title: "Data Engineer Account Created!",
-          description:
-            "Welcome to DaytaTech. Your 30-day free trial has started with premium data engineering features.",
-        })
+        router.push("/verify-email")
       } else {
         toast({
-          title: "Account created!",
-          description: "Welcome to DaytaTech. Your 30-day free trial has started.",
+          title: "Signup Failed",
+          description: result.error || "Something went wrong. Please try again.",
+          variant: "destructive",
         })
       }
-
-      // Redirect to dashboard
-      router.push("/dashboard")
-    }, 1500)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <TooltipProvider>
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-        <Link href="/" className="absolute left-8 top-8 flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-purple-600" />
-          <span className="text-xl font-bold">DaytaTech</span>
-        </Link>
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-purple-600" />
+            <span className="text-xl font-bold">DaytaTech</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500">Already have an account?</span>
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Log in
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
 
-        <Card className="w-full max-w-md">
-          <form onSubmit={handleSubmit}>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">Start Your Free Trial</CardTitle>
-              <CardDescription className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-green-600" />
-                <span>30 days free, then $39/month - No credit card required</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <main className="flex-1 flex items-center justify-center py-12 px-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Start Your Free Trial</CardTitle>
+            <CardDescription>Get expert data insights without the experts. No credit card required.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">
-                    First name <span className="text-red-500">*</span>
-                  </Label>
+                  <Label htmlFor="firstName">First Name *</Label>
                   <Input
                     id="firstName"
                     placeholder="John"
@@ -167,207 +155,217 @@ export default function SignupPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">
-                    Last name <span className="text-red-500">*</span>
-                  </Label>
+                  <Label htmlFor="lastName">Last Name *</Label>
                   <Input id="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} required />
                 </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  Email <span className="text-red-500">*</span>
-                </Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="john@company.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="password">
-                  Password <span className="text-red-500">*</span>
-                </Label>
-                <Input id="password" type="password" value={formData.password} onChange={handleChange} required />
-                <p className="text-xs text-gray-500">Must be at least 6 characters</p>
+                <Label htmlFor="company">Company</Label>
+                <Input id="company" placeholder="Your Company" value={formData.company} onChange={handleChange} />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="company">Company (Optional)</Label>
-                <Input id="company" placeholder="Your company name" value={formData.company} onChange={handleChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="industry">
-                  Industry <span className="text-red-500">*</span>
-                </Label>
-                <Select onValueChange={handleIndustryChange} value={formData.industry}>
-                  <SelectTrigger id="industry">
+                <Label htmlFor="industry">Industry</Label>
+                <Select onValueChange={handleSelectChange("industry")} value={formData.industry}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select your industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="retail">Retail</SelectItem>
-                    <SelectItem value="healthcare">Healthcare</SelectItem>
-                    <SelectItem value="finance">Finance & Banking</SelectItem>
                     <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="finance">Finance & Banking</SelectItem>
+                    <SelectItem value="healthcare">Healthcare</SelectItem>
+                    <SelectItem value="retail">Retail & E-commerce</SelectItem>
                     <SelectItem value="manufacturing">Manufacturing</SelectItem>
                     <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="real-estate">Real Estate</SelectItem>
-                    <SelectItem value="hospitality">Hospitality</SelectItem>
                     <SelectItem value="consulting">Consulting</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {formData.industry === "other" && (
-                <div className="space-y-2">
-                  <Label htmlFor="customIndustry">
-                    Please specify your industry <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="customIndustry"
-                    placeholder="Enter your industry"
-                    value={formData.customIndustry}
-                    onChange={handleCustomIndustryChange}
-                    required
-                  />
-                </div>
-              )}
-
               <div className="space-y-2">
-                <Label htmlFor="role" className="flex items-center gap-2">
-                  Your Role <span className="text-red-500">*</span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p className="text-sm">
-                        Choose the role that best describes what you do with data. Hover over each option for more
-                        details!
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </Label>
-                <Select onValueChange={handleRoleChange} value={formData.role}>
-                  <SelectTrigger id="role">
+                <Label htmlFor="role">Role</Label>
+                <Select onValueChange={handleSelectChange("role")} value={formData.role}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="data-scientist">
-                      <div className="flex items-center gap-2">
-                        <FlaskConical className="h-4 w-4 text-purple-600" />
-                        <span>Data Scientist</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="text-sm space-y-1">
-                              <p className="font-medium">Data Scientist = Detective 🕵️</p>
-                              <p>You look at data like clues to solve business mysteries!</p>
-                              <p>• Find patterns (like "why do customers buy more on Fridays?")</p>
-                              <p>• Make predictions (like "how many toys will we sell next month?")</p>
-                              <p>• Create reports for bosses to make big decisions</p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="data-engineer">
-                      <div className="flex items-center gap-2">
-                        <Database className="h-4 w-4 text-blue-600" />
-                        <span>Data Engineer</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="text-sm space-y-1">
-                              <p className="font-medium">Data Engineer = Builder 🔧</p>
-                              <p>You build the "roads" that data travels on!</p>
-                              <p>• Make sure data gets from place to place safely</p>
-                              <p>• Clean messy data (like organizing a messy room)</p>
-                              <p>• Build systems that collect and store data properly</p>
-                              <p>• Make everything run fast and smooth</p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="business-analyst">Business Analyst</SelectItem>
+                    <SelectItem value="data-analyst">Data Analyst</SelectItem>
+                    <SelectItem value="data-scientist">Data Scientist</SelectItem>
+                    <SelectItem value="data-engineer">Data Engineer</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="executive">Executive</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
-
-                {formData.role === "data-scientist" && (
-                  <div className="mt-2 text-xs text-purple-600 bg-purple-50 p-2 rounded-md border border-purple-100">
-                    <p className="font-medium">Data Scientist Bonus Features (Free for 30 days):</p>
-                    <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                      <li>AI industry-specific insights</li>
-                      <li>Advanced data analysis</li>
-                      <li>Universal file format support</li>
-                      <li>Executive summaries</li>
-                    </ul>
-                  </div>
-                )}
-
-                {formData.role === "data-engineer" && (
-                  <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded-md border border-blue-100">
-                    <p className="font-medium">Data Engineer Bonus Features (Free for 30 days):</p>
-                    <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                      <li>AI pipeline development insights</li>
-                      <li>Data architecture recommendations</li>
-                      <li>Data transformation & processing insights</li>
-                      <li>Data governance & security insights</li>
-                      <li>Performance tuning & optimizations</li>
-                      <li>AI-supported data cleaning recommendations</li>
-                      <li>Universal file format support</li>
-                    </ul>
-                  </div>
-                )}
               </div>
 
-              <div className="rounded-lg bg-green-50 p-4 border border-green-200">
-                <div className="text-sm font-medium text-green-800 mb-2 flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  30-Day Free Trial
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a strong password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
-                <ul className="text-xs text-green-700 space-y-1">
-                  <li>• 10 file uploads per month</li>
-                  <li>• AI-powered insights & recommendations</li>
-                  <li>• CSV, Excel, JSON support</li>
-                  <li>• Executive summaries</li>
-                  <li>• Email support</li>
-                  <li>• No credit card required</li>
-                </ul>
-                <div className="text-xs text-green-600 mt-2 font-medium">After 30 days: $39/month (cancel anytime)</div>
+
+                {formData.password && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-full rounded-full bg-gray-200`}>
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            passwordStrength.score < 2
+                              ? "bg-red-500 w-1/4"
+                              : passwordStrength.score < 4
+                                ? "bg-yellow-500 w-2/4"
+                                : passwordStrength.score < 5
+                                  ? "bg-blue-500 w-3/4"
+                                  : "bg-green-500 w-full"
+                          }`}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {passwordStrength.score < 2
+                          ? "Weak"
+                          : passwordStrength.score < 4
+                            ? "Fair"
+                            : passwordStrength.score < 5
+                              ? "Good"
+                              : "Strong"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div
+                        className={`flex items-center gap-1 ${passwordStrength.checks.length ? "text-green-600" : "text-gray-400"}`}
+                      >
+                        {passwordStrength.checks.length ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        8+ characters
+                      </div>
+                      <div
+                        className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? "text-green-600" : "text-gray-400"}`}
+                      >
+                        {passwordStrength.checks.uppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        Uppercase
+                      </div>
+                      <div
+                        className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? "text-green-600" : "text-gray-400"}`}
+                      >
+                        {passwordStrength.checks.lowercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        Lowercase
+                      </div>
+                      <div
+                        className={`flex items-center gap-1 ${passwordStrength.checks.number ? "text-green-600" : "text-gray-400"}`}
+                      >
+                        {passwordStrength.checks.number ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        Number
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button className="w-full" type="submit" disabled={isLoading}>
+
+              <div className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  id="agreeToTerms"
+                  checked={formData.agreeToTerms}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, agreeToTerms: e.target.checked }))}
+                  className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  required
+                />
+                <label htmlFor="agreeToTerms" className="text-sm text-gray-700">
+                  I agree to the{" "}
+                  <button
+                    type="button"
+                    onClick={() => window.open("/terms", "_blank")}
+                    className="text-purple-600 hover:text-purple-800 underline"
+                  >
+                    Terms of Service
+                  </button>{" "}
+                  and{" "}
+                  <button
+                    type="button"
+                    onClick={() => window.open("/privacy", "_blank")}
+                    className="text-purple-600 hover:text-purple-800 underline"
+                  >
+                    Privacy Policy
+                  </button>
+                  . *
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || passwordStrength.score < 3 || !formData.agreeToTerms}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
+                    Creating Account...
                   </>
                 ) : (
-                  "Start 30-Day Free Trial"
+                  <>
+                    Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
                 )}
               </Button>
-              <div className="text-center text-sm">
-                Already have an account?{" "}
-                <Link href="/login" className="text-purple-600 hover:underline">
-                  Log in
-                </Link>
-              </div>
-              <div className="text-center text-xs text-gray-500">
-                By creating an account, you agree to our Terms of Service and Privacy Policy. No credit card required
-                for trial.
-              </div>
-            </CardFooter>
-          </form>
+            </form>
+
+            <div className="mt-6 text-center text-sm text-gray-500">
+              By signing up, you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-gray-700">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-gray-700">
+                Privacy Policy
+              </Link>
+              .
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-blue-900 mb-2">What you get with your free trial:</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• 30 days of full access</li>
+                <li>• Unlimited data analyses</li>
+                <li>• AI-powered insights</li>
+                <li>• All file formats supported</li>
+                <li>• Priority email support</li>
+                <li>• No credit card required</li>
+              </ul>
+            </div>
+          </CardContent>
         </Card>
-      </div>
-    </TooltipProvider>
+      </main>
+    </div>
   )
 }

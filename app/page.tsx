@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowRight, BarChart3, FileText, Zap, Database, Brain, Users, TrendingUp, Shield } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,9 +14,22 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<"basic" | "pro" | "team" | "enterprise">("pro")
 
+  const router = useRouter()
+
   const handlePlanSelect = (plan: "basic" | "pro" | "team" | "enterprise") => {
+    console.log("Plan selected:", plan)
     setSelectedPlan(plan)
     setShowUpgradeModal(true)
+  }
+
+  const handleSignupRedirect = () => {
+    console.log("Signup button clicked!")
+    try {
+      router.push("/signup")
+    } catch (error) {
+      console.error("Router navigation failed:", error)
+      window.location.href = "/signup"
+    }
   }
 
   return (
@@ -49,6 +63,7 @@ export default function Home() {
           </div>
         </div>
       </header>
+
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-purple-50">
           <div className="container px-4 md:px-6">
@@ -64,16 +79,12 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/signup">
-                    <Button size="lg" className="gap-1">
-                      Start Free Trial <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href="/demo">
-                    <Button size="lg" variant="outline">
-                      See How It Works
-                    </Button>
-                  </Link>
+                  <Button size="lg" className="gap-1" onClick={handleSignupRedirect}>
+                    Start Free Trial <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/demo">See How It Works</Link>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <div className="flex items-center gap-1">
@@ -877,11 +888,9 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/signup">
-                  <Button size="lg" variant="secondary" className="gap-1">
-                    Start Free Trial <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
+                <Button size="lg" variant="secondary" className="gap-1" onClick={handleSignupRedirect}>
+                  Start Free Trial <ArrowRight className="h-4 w-4" />
+                </Button>
                 <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
                   Contact Sales
                 </ContactSalesButton>
@@ -890,6 +899,7 @@ export default function Home() {
           </div>
         </section>
       </main>
+
       <footer className="w-full border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <div className="flex items-center gap-2">
@@ -913,8 +923,9 @@ export default function Home() {
           initialPlan={selectedPlan}
           onClose={() => setShowUpgradeModal(false)}
           onSuccess={() => {
+            console.log("Modal onSuccess called, attempting redirect...")
             setShowUpgradeModal(false)
-            // Redirect to dashboard or show success message
+            handleSignupRedirect()
           }}
         />
       )}

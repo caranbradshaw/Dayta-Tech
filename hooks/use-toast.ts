@@ -38,5 +38,9 @@ export function useToast() {
     setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id))
   }
 
-  return { toast, dismiss, toasts }
+  return {
+    toast,
+    dismiss,
+    toasts,
+  }
 }
