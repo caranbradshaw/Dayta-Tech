@@ -5,13 +5,15 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/toast"
 import { AuthProvider } from "@/components/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AnalyticsProvider } from "@/components/analytics/analytics-provider"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DaytaTech - AI-Powered Data Analysis",
+  title: "DaytaTech.ai - AI-Powered Data Analysis",
   description: "Transform raw data into executive-ready summaries with AI — no dashboards, formulas, or SQL required.",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -24,8 +26,10 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster />
+            <AnalyticsProvider>
+              <Suspense>{children}</Suspense>
+              <Toaster />
+            </AnalyticsProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

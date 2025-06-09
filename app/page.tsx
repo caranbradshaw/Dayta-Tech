@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowRight, BarChart3, FileText, Zap, Database, Brain, Users, TrendingUp, Shield } from "lucide-react"
+import { ArrowRight, FileText, Zap, Database, Brain, Users, TrendingUp, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ContactSalesButton } from "@/components/contact-sales-button"
 import { UpgradeAccountModal } from "@/components/upgrade-account-modal"
+import { Logo } from "@/components/ui/logo"
 
 export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -36,10 +37,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-xl font-bold">DaytaTech</span>
-          </div>
+          <Logo />
           <nav className="hidden md:flex items-center gap-6">
             <Link href="#features" className="text-sm font-medium hover:underline underline-offset-4">
               Features
@@ -65,7 +63,7 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-purple-50">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-blue-50">
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
               <div className="flex flex-col justify-center space-y-4">
@@ -100,8 +98,8 @@ export default function Home() {
               <div className="mx-auto lg:mx-0 relative">
                 <div className="relative rounded-lg border bg-background p-4 shadow-lg">
                   <div className="space-y-2">
-                    <div className="h-2 w-20 rounded bg-purple-200"></div>
-                    <div className="h-2 w-10 rounded bg-purple-200"></div>
+                    <div className="h-2 w-20 rounded bg-blue-200"></div>
+                    <div className="h-2 w-10 rounded bg-blue-200"></div>
                   </div>
                   <div className="mt-4 grid gap-2">
                     <div className="rounded-md bg-blue-100 p-3">
@@ -117,7 +115,7 @@ export default function Home() {
                         Customer acquisition cost decreased 18% in Q3—reallocate budget from low-performing channels
                       </div>
                     </div>
-                    <div className="rounded-md bg-purple-100 p-3">
+                    <div className="rounded-md bg-blue-100 p-3">
                       <div className="font-medium">Risk Alert</div>
                       <div className="text-sm text-gray-500">
                         Customer churn pattern detected in enterprise segment—implement retention strategy within 30
@@ -126,7 +124,7 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-purple-500/20 blur-xl"></div>
+                <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-blue-500/20 blur-xl"></div>
                 <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-blue-500/20 blur-xl"></div>
               </div>
             </div>
@@ -137,7 +135,7 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">Features</div>
+                <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">Features</div>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Your AI Data Team in a Box</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Get the expertise of data engineers and data scientists without hiring them. Our AI analyzes your data
@@ -149,7 +147,7 @@ export default function Home() {
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <Brain className="h-6 w-6 text-purple-600" />
+                  <Brain className="h-6 w-6 text-blue-600" />
                   <CardTitle>AI Data Scientist</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -161,7 +159,7 @@ export default function Home() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <Database className="h-6 w-6 text-purple-600" />
+                  <Database className="h-6 w-6 text-blue-600" />
                   <CardTitle>AI Data Engineer</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -173,7 +171,7 @@ export default function Home() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <FileText className="h-6 w-6 text-purple-600" />
+                  <FileText className="h-6 w-6 text-blue-600" />
                   <CardTitle>Executive Summaries</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -185,7 +183,7 @@ export default function Home() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                  <TrendingUp className="h-6 w-6 text-blue-600" />
                   <CardTitle>Business Intelligence</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -197,7 +195,7 @@ export default function Home() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <Zap className="h-6 w-6 text-purple-600" />
+                  <Zap className="h-6 w-6 text-blue-600" />
                   <CardTitle>No Technical Skills Required</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -209,7 +207,7 @@ export default function Home() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2">
-                  <Users className="h-6 w-6 text-purple-600" />
+                  <Users className="h-6 w-6 text-blue-600" />
                   <CardTitle>Complements Your Team</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -283,18 +281,18 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="border-2 border-purple-200 bg-purple-50">
+              <Card className="border-2 border-blue-200 bg-blue-50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-purple-600" />
+                    <Brain className="h-5 w-5 text-blue-600" />
                     If You Don't Have a Data Team
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 text-sm">
                     <li className="flex items-start gap-2">
-                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
-                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
                       </div>
                       <span>
                         <strong>Instant Expertise:</strong> Get data scientist-level insights without hiring expensive
@@ -302,8 +300,8 @@ export default function Home() {
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
-                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
                       </div>
                       <span>
                         <strong>No Learning Curve:</strong> Start getting insights immediately—no training or technical
@@ -311,8 +309,8 @@ export default function Home() {
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
-                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
                       </div>
                       <span>
                         <strong>Cost Effective:</strong> Get expert analysis for a fraction of the cost of hiring data
@@ -320,8 +318,8 @@ export default function Home() {
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="rounded-full bg-purple-100 p-1 mt-0.5">
-                        <ArrowRight className="h-3 w-3 text-purple-600" />
+                      <div className="rounded-full bg-blue-100 p-1 mt-0.5">
+                        <ArrowRight className="h-3 w-3 text-blue-600" />
                       </div>
                       <span>
                         <strong>Competitive Advantage:</strong> Make data-driven decisions like companies with dedicated
@@ -339,7 +337,7 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">Pricing</div>
+                <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">Pricing</div>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Expert Data Analysis for Everyone</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Get the power of data engineers and data scientists at a fraction of the cost of hiring them.
@@ -446,9 +444,9 @@ export default function Home() {
                   </Button>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-purple-600 shadow-lg">
+              <Card className="border-2 border-blue-600 shadow-lg">
                 <CardHeader>
-                  <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800 mb-2">
+                  <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800 mb-2">
                     Most Popular
                   </div>
                   <CardTitle>Professional</CardTitle>
@@ -737,7 +735,7 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800">FAQ</div>
+                <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">FAQ</div>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Frequently Asked Questions</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Everything you need to know about getting expert data insights without the experts.
@@ -876,14 +874,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-purple-600 text-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-blue-600 text-white">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
                   Ready to Feel Like You Have a Data Team?
                 </h2>
-                <p className="max-w-[900px] text-purple-100 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[900px] text-blue-100 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Join thousands of businesses getting expert-level data insights without the expert-level costs.
                 </p>
               </div>
@@ -902,10 +900,7 @@ export default function Home() {
 
       <footer className="w-full border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-lg font-bold">DaytaTech</span>
-          </div>
+          <Logo />
           <p className="text-center text-sm text-gray-500 md:text-left">© 2025 DaytaTech. All rights reserved.</p>
           <div className="flex gap-4">
             <Link href="/terms" className="text-sm text-gray-500 hover:underline underline-offset-4">

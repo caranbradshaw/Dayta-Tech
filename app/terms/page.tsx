@@ -1,8 +1,9 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BarChart3 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/ui/logo"
 
 export default function TermsPage() {
   const router = useRouter()
@@ -12,7 +13,7 @@ export default function TermsPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <BarChart3 className="h-6 w-6 text-purple-600" />
+            <Logo />
             <span className="text-xl font-bold">DaytaTech</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
@@ -50,7 +51,7 @@ export default function TermsPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => router.push("/")}
-            className="inline-flex items-center text-purple-600 hover:text-purple-800 mb-8"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to DaytaTech Home
@@ -395,7 +396,7 @@ export default function TermsPage() {
               <div className="bg-gray-50 p-6 rounded-lg">
                 <p className="text-gray-700 mb-3">
                   <strong>General Inquiries:</strong>{" "}
-                  <a href="mailto:caran@daytatech.ai" className="text-purple-600 hover:underline">
+                  <a href="mailto:caran@daytatech.ai" className="text-blue-600 hover:underline">
                     caran@daytatech.ai
                   </a>
                 </p>
@@ -412,7 +413,7 @@ export default function TermsPage() {
                 </p>
                 <p className="text-gray-700">
                   <strong>Phone:</strong>{" "}
-                  <a href="tel:+18663356505" className="text-purple-600 hover:underline">
+                  <a href="tel:+18663356505" className="text-blue-600 hover:underline">
                     866-335-6505
                   </a>
                 </p>
@@ -431,10 +432,7 @@ export default function TermsPage() {
 
       <footer className="w-full border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-lg font-bold">DaytaTech</span>
-          </div>
+          <Logo />
           <p className="text-center text-sm text-gray-500 md:text-left">© 2025 DaytaTech, LLC. All rights reserved.</p>
           <div className="flex gap-4">
             <button

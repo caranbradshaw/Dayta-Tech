@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowRight, BarChart3, Eye, EyeOff, Loader2, Check, X } from "lucide-react"
+import { ArrowRight, Eye, EyeOff, Loader2, Check, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { signUp } from "@/lib/auth-utils"
+import { Logo } from "@/components/ui/logo"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -120,10 +121,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-xl font-bold">DaytaTech</span>
-          </Link>
+          <Logo />
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">Already have an account?</span>
             <Link href="/login">
@@ -298,7 +296,7 @@ export default function SignupPage() {
                   id="agreeToTerms"
                   checked={formData.agreeToTerms}
                   onChange={(e) => setFormData((prev) => ({ ...prev, agreeToTerms: e.target.checked }))}
-                  className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   required
                 />
                 <label htmlFor="agreeToTerms" className="text-sm text-gray-700">
@@ -306,7 +304,7 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={() => window.open("/terms", "_blank")}
-                    className="text-purple-600 hover:text-purple-800 underline"
+                    className="text-blue-600 hover:text-blue-800 underline"
                   >
                     Terms of Service
                   </button>{" "}
@@ -314,7 +312,7 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={() => window.open("/privacy", "_blank")}
-                    className="text-purple-600 hover:text-purple-800 underline"
+                    className="text-blue-600 hover:text-blue-800 underline"
                   >
                     Privacy Policy
                   </button>
