@@ -168,7 +168,7 @@ export default function PrivacyPage() {
                 </ul>
               </div>
 
-              <div className="bg-purple-50 p-4 rounded-lg mb-4">
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <h4 className="font-semibold text-gray-800 mb-2">Supabase (Database & Authentication)</h4>
                 <p className="text-gray-700 text-sm mb-2">
                   Supabase provides our database and authentication services. They maintain strict data protection
@@ -211,8 +211,8 @@ export default function PrivacyPage() {
               <div className="bg-gray-50 p-6 rounded-lg">
                 <p className="text-gray-700 mb-3">
                   <strong>Privacy Officer Email:</strong>{" "}
-                  <a href="mailto:caran@daytatech.ai" className="text-blue-600 hover:underline">
-                    caran@daytatech.ai
+                  <a href="mailto:support@daytatech.ai" className="text-blue-600 hover:underline">
+                    support@daytatech.ai
                   </a>
                 </p>
                 <p className="text-gray-700 mb-3">
