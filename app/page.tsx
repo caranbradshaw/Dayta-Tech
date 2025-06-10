@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowRight, FileText, Zap, Database, Brain, Users, TrendingUp, Shield } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,22 +14,9 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<"basic" | "pro" | "team" | "enterprise">("pro")
 
-  const router = useRouter()
-
   const handlePlanSelect = (plan: "basic" | "pro" | "team" | "enterprise") => {
-    console.log("Plan selected:", plan)
     setSelectedPlan(plan)
     setShowUpgradeModal(true)
-  }
-
-  const handleSignupRedirect = () => {
-    console.log("Signup button clicked!")
-    try {
-      router.push("/signup")
-    } catch (error) {
-      console.error("Router navigation failed:", error)
-      window.location.href = "/signup"
-    }
   }
 
   return (
@@ -77,12 +63,16 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button size="lg" className="gap-1" onClick={handleSignupRedirect}>
-                    Start Free Trial <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button asChild size="lg" variant="outline">
-                    <Link href="/demo">See How It Works</Link>
-                  </Button>
+                  <Link href="/signup">
+                    <Button size="lg" className="gap-1">
+                      Start Free Trial <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/demo">
+                    <Button size="lg" variant="outline">
+                      See How It Works
+                    </Button>
+                  </Link>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <div className="flex items-center gap-1">
@@ -439,9 +429,9 @@ export default function Home() {
                       <span>Email support</span>
                     </li>
                   </ul>
-                  <Button className="mt-6 w-full" onClick={() => handlePlanSelect("basic")}>
-                    Start 30-Day Free Trial
-                  </Button>
+                  <Link href="/signup">
+                    <Button className="mt-6 w-full">Start 30-Day Free Trial</Button>
+                  </Link>
                 </CardContent>
               </Card>
               <Card className="border-2 border-blue-600 shadow-lg">
@@ -541,9 +531,9 @@ export default function Home() {
                       <span>Priority support</span>
                     </li>
                   </ul>
-                  <Button className="mt-6 w-full" onClick={() => handlePlanSelect("pro")}>
-                    Start 30-Day Free Trial
-                  </Button>
+                  <Link href="/signup">
+                    <Button className="mt-6 w-full">Start 30-Day Free Trial</Button>
+                  </Link>
                 </CardContent>
               </Card>
               <Card className="border-2 border-gray-200">
@@ -623,9 +613,9 @@ export default function Home() {
                       <span>Advanced team analytics</span>
                     </li>
                   </ul>
-                  <Button className="mt-6 w-full" onClick={() => handlePlanSelect("team")}>
-                    Start 30-Day Free Trial
-                  </Button>
+                  <Link href="/signup">
+                    <Button className="mt-6 w-full">Start 30-Day Free Trial</Button>
+                  </Link>
                 </CardContent>
               </Card>
               <Card className="border-2 border-gray-200">
@@ -886,9 +876,11 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Button size="lg" variant="secondary" className="gap-1" onClick={handleSignupRedirect}>
-                  Start Free Trial <ArrowRight className="h-4 w-4" />
-                </Button>
+                <Link href="/signup">
+                  <Button size="lg" variant="secondary" className="gap-1">
+                    Start Free Trial <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
                   Contact Sales
                 </ContactSalesButton>
@@ -918,9 +910,8 @@ export default function Home() {
           initialPlan={selectedPlan}
           onClose={() => setShowUpgradeModal(false)}
           onSuccess={() => {
-            console.log("Modal onSuccess called, attempting redirect...")
             setShowUpgradeModal(false)
-            handleSignupRedirect()
+            window.location.href = "/signup"
           }}
         />
       )}
