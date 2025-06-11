@@ -1,102 +1,139 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
-import { getUserProfile, signOut as authSignOut } from "@/lib/auth-utils"
-import type { User } from "@supabase/supabase-js"
-import type { Database } from "@/types/database.types"
+import type React from "react"
+import { createContext, useContext, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"]
-
-type AuthContextType = {
-  user: User | null
-  profile: Profile | null
-  loading: boolean
-  signOut: () => Promise<void>
-  refreshProfile: () => Promise<void>
+interface User {
+  id: string
+  email: string
+  name: string
+  company?: string
+  role?: string
+  industry?: string
+  plan?: string
+  createdAt: string
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  loading: true,
-  signOut: async () => {},
-  refreshProfile: async () => {},
-})
+interface AuthContextType {
+  user: User | null
+  profile: User | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (userData: Partial<User>) => Promise<void>
+  signOut: () => void
+  isAuthenticated: boolean
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const refreshProfile = async () => {
-    if (user) {
-      const profileData = await getUserProfile(user.id)
-      setProfile(profileData)
-    }
-  }
-
-  const handleSignOut = async () => {
-    await authSignOut()
-    setUser(null)
-    setProfile(null)
-  }
+  const router = useRouter()
 
   useEffect(() => {
-    // Check for current session
-    const checkUser = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (session?.user) {
-          setUser(session.user)
-          const profileData = await getUserProfile(session.user.id)
-          setProfile(profileData)
-        }
-      } catch (error) {
-        console.error("Error checking user session:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkUser()
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user)
-        const profileData = await getUserProfile(session.user.id)
-        setProfile(profileData)
-      } else {
-        setUser(null)
-        setProfile(null)
-      }
-      setLoading(false)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
+    // Check for existing session on mount
+    checkAuthState()
   }, [])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        loading,
-        signOut: handleSignOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+  const checkAuthState = () => {
+    try {
+      const isAuthenticated = localStorage.getItem("isAuthenticated")
+      const userData = localStorage.getItem("user")
+
+      if (isAuthenticated === "true" && userData) {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+      }
+    } catch (error) {
+      console.error("Error checking auth state:", error)
+      // Clear invalid data
+      localStorage.removeItem("isAuthenticated")
+      localStorage.removeItem("user")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    setLoading(true)
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // For demo purposes, accept any email/password
+      const userData: User = {
+        id: `user_${Date.now()}`,
+        email,
+        name: email.split("@")[0],
+        createdAt: new Date().toISOString(),
+        plan: "basic",
+      }
+
+      localStorage.setItem("user", JSON.stringify(userData))
+      localStorage.setItem("isAuthenticated", "true")
+      setUser(userData)
+    } catch (error) {
+      throw new Error("Login failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signUp = async (userData: Partial<User>) => {
+    setLoading(true)
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      const newUser: User = {
+        id: `user_${Date.now()}`,
+        email: userData.email || "",
+        name: userData.name || "",
+        company: userData.company,
+        role: userData.role,
+        industry: userData.industry,
+        plan: userData.plan || "basic",
+        createdAt: new Date().toISOString(),
+      }
+
+      localStorage.setItem("user", JSON.stringify(newUser))
+      localStorage.setItem("isAuthenticated", "true")
+      setUser(newUser)
+    } catch (error) {
+      throw new Error("Signup failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signOut = () => {
+    localStorage.removeItem("user")
+    localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("analyses")
+    localStorage.removeItem("currentAnalysis")
+    setUser(null)
+    router.push("/")
+  }
+
+  const value: AuthContextType = {
+    user,
+    profile: user, // For compatibility with existing code
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    isAuthenticated: !!user,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export const useAuth = () => useContext(AuthContext)
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}

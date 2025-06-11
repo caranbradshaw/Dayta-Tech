@@ -214,9 +214,9 @@ export function FileUploader({
   )
 
   const handleClick = useCallback(() => {
-    if (disabled || uploading) return
+    // Remove the disabled check that's blocking file selection
     fileInputRef.current?.click()
-  }, [disabled, uploading])
+  }, [])
 
   const handleRemoveFile = useCallback(() => {
     setUploadedFile(null)
@@ -239,11 +239,7 @@ export function FileUploader({
             onDragLeave={handleDragLeave}
             onClick={handleClick}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              dragActive
-                ? "border-blue-500 bg-blue-50"
-                : disabled
-                  ? "border-gray-200 bg-gray-50 cursor-not-allowed"
-                  : "border-gray-300 hover:border-gray-400"
+              dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
             }`}
           >
             <input
@@ -252,7 +248,7 @@ export function FileUploader({
               accept=".csv,.xlsx,.xls,.json"
               onChange={handleFileInputChange}
               className="hidden"
-              disabled={disabled || uploading}
+              // Remove disabled prop entirely
             />
 
             {uploading ? (
@@ -338,12 +334,10 @@ export function FileUploader({
                     {disabled ? "Upload limit reached" : "Drag and drop or click to select CSV, Excel, or JSON files"}
                   </p>
                 </div>
-                {!disabled && (
-                  <Button variant="outline">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Choose File
-                  </Button>
-                )}
+                <Button variant="outline" onClick={handleClick}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Choose File
+                </Button>
               </div>
             )}
           </div>

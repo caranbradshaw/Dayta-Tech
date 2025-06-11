@@ -31,8 +31,9 @@ export default function NigeriaPage() {
   const router = useRouter()
 
   const handleWhitePaperDownload = (paperName: string) => {
-    // Create a blob with comprehensive content
-    const content = `# ${paperName}
+    try {
+      // Create a more robust blob with sample content
+      const content = `# ${paperName}
 
 ## Executive Summary
 This comprehensive guide provides Nigerian businesses with practical insights and strategies for ${paperName.toLowerCase()}.
@@ -88,15 +89,31 @@ For more information or implementation support:
 
 © 2025 DaytaTech Nigeria. All rights reserved.`
 
-    const blob = new Blob([content], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${paperName.replace(/\s+/g, "-").toLowerCase()}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+      // Create the blob and trigger download
+      const blob = new Blob([content], { type: "text/markdown" })
+      const url = URL.createObjectURL(blob)
+
+      // Create and trigger download link
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${paperName.replace(/\s+/g, "-").toLowerCase()}.md`
+      document.body.appendChild(a)
+      a.click()
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }, 100)
+
+      // Show success message
+      alert(
+        `Downloading ${paperName}. If the download doesn't start automatically, please check your browser settings.`,
+      )
+    } catch (error) {
+      console.error("Download error:", error)
+      alert("There was an error downloading the white paper. Please try again.")
+    }
   }
 
   const handleStartTrial = () => {
