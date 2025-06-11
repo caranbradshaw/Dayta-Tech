@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ContactSalesDialog } from "@/components/contact-sales-dialog"
 import { ContactSupportModal } from "@/components/contact-support-modal"
-import { Logo } from "@/components/logo"
+import { Logo } from "@/components/ui/logo"
 import Link from "next/link"
 
 export default function Page() {
