@@ -155,7 +155,7 @@ export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }:
         </div>
 
         <CardHeader>
-          <CardTitle className="text-2xl">Upgrade Your Account</CardTitle>
+          <CardTitle className="text-2xl">Upgrade Your DaytaTech.ai Account</CardTitle>
           <CardDescription>
             Upgrade from Basic plan ($39/month) to access advanced features and unlimited uploads
           </CardDescription>
@@ -413,8 +413,8 @@ export function UpgradeAccountModal({ onClose, onSuccess, initialPlan = "pro" }:
 
         <CardFooter className="flex flex-col gap-4">
           <div className="text-center text-xs text-gray-500">
-            By upgrading, you agree to our Terms of Service and Privacy Policy. You can cancel your subscription at any
-            time.
+            By upgrading, you agree to DaytaTech.ai's Terms of Service and Privacy Policy. You can cancel your
+            subscription at any time.
           </div>
         </CardFooter>
       </Card>

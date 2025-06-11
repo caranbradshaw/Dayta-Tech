@@ -1,468 +1,457 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, ArrowRight, BarChart3, Check, FileText, FileUp, Lightbulb, Upload, X } from "lucide-react"
-
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { Check, FileSpreadsheet, TrendingUp, Lightbulb } from "lucide-react"
+import { RegionalPerformanceChart } from "@/components/regional-performance-chart"
+import { RevenueGrowthChart } from "@/components/revenue-growth-chart"
+import { CustomerMetricsChart } from "@/components/customer-metrics-chart"
+
+// Demo data - completely self-contained, no API calls needed
+const DEMO_DATA = {
+  summary: {
+    title: "Q2 Sales Performance Analysis",
+    overview: "Analysis of 1,247 sales records across 12 product categories",
+    highlights: [
+      "Revenue increased by 23% compared to Q1",
+      "Enterprise segment grew by 31%",
+      "Customer retention improved to 94%",
+      "Average deal size increased by 17%",
+    ],
+    recommendations: [
+      "Focus on enterprise segment expansion",
+      "Implement cross-selling strategy for mid-market",
+      "Optimize sales cycle for SMB segment",
+      "Increase investment in customer success team",
+    ],
+  },
+  insights: [
+    {
+      id: "insight-1",
+      title: "Revenue Growth Opportunities",
+      description: "Enterprise customers show 3.4x higher lifetime value than SMB",
+      metrics: {
+        impact: "High",
+        confidence: "92%",
+        effort: "Medium",
+      },
+      details:
+        "Analysis shows enterprise customers have significantly higher retention rates and expansion revenue. Increasing enterprise segment by 15% could result in $2.7M additional annual recurring revenue.",
+    },
+    {
+      id: "insight-2",
+      title: "Sales Efficiency Optimization",
+      description: "Sales cycle can be reduced by 27% through process optimization",
+      metrics: {
+        impact: "Medium",
+        confidence: "87%",
+        effort: "Low",
+      },
+      details:
+        "Current sales cycle averages 42 days. Implementing automated qualification and streamlined demo scheduling could reduce this to 31 days, increasing quarterly deal velocity by 35%.",
+    },
+    {
+      id: "insight-3",
+      title: "Customer Segmentation Opportunity",
+      description: "Creating a premium tier could increase ARPU by 22%",
+      metrics: {
+        impact: "High",
+        confidence: "89%",
+        effort: "Medium",
+      },
+      details:
+        "25% of customers consistently utilize advanced features and would benefit from a premium tier. Survey data suggests willingness to pay 30-40% more for enhanced capabilities and priority support.",
+    },
+  ],
+  charts: {
+    revenue: {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      datasets: [
+        {
+          label: "Enterprise",
+          data: [120000, 132000, 141000, 160000, 178000, 195000],
+        },
+        {
+          label: "Mid-Market",
+          data: [85000, 87000, 92000, 98000, 103000, 110000],
+        },
+        {
+          label: "SMB",
+          data: [45000, 47000, 49000, 52000, 54000, 58000],
+        },
+      ],
+    },
+    customers: {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      datasets: [
+        {
+          label: "New Customers",
+          data: [42, 38, 47, 53, 60, 65],
+        },
+        {
+          label: "Churned Customers",
+          data: [8, 7, 6, 5, 4, 3],
+        },
+      ],
+    },
+    regions: {
+      labels: ["North America", "Europe", "Asia Pacific", "Latin America"],
+      datasets: [
+        {
+          label: "Revenue Distribution",
+          data: [45, 30, 20, 5],
+        },
+        {
+          label: "Growth Rate",
+          data: [18, 22, 35, 12],
+        },
+      ],
+    },
+  },
+}
+
+// Demo steps
+const DEMO_STEPS = [
+  { id: "intro", title: "Introduction", description: "See how DaytaTech works" },
+  { id: "upload", title: "Upload Data", description: "Upload your data file" },
+  { id: "analyze", title: "AI Analysis", description: "Our AI analyzes your data" },
+  { id: "results", title: "View Results", description: "Review insights and recommendations" },
+]
 
 export function DemoWalkthrough() {
   const [currentStep, setCurrentStep] = useState(0)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [isUploading, setIsUploading] = useState(false)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
+  const [analysisSteps, setAnalysisSteps] = useState([
+    { name: "Data validation", complete: false },
+    { name: "Structure analysis", complete: false },
+    { name: "Pattern recognition", complete: false },
+    { name: "Insight generation", complete: false },
+    { name: "Recommendation creation", complete: false },
+  ])
+  const [demoData, setDemoData] = useState(DEMO_DATA)
+  const [activeTab, setActiveTab] = useState("summary")
 
-  const totalSteps = 5
-
-  const handleNextStep = () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep(currentStep + 1)
-
-      // Reset upload progress when moving to step 1
-      if (currentStep === 0) {
-        setIsUploading(false)
-        setUploadProgress(0)
-      }
+  // Handle upload simulation
+  useEffect(() => {
+    if (currentStep === 1 && uploadProgress < 100) {
+      const timer = setTimeout(() => {
+        setUploadProgress((prev) => Math.min(prev + 5, 100))
+      }, 100)
+      return () => clearTimeout(timer)
     }
-  }
+  }, [currentStep, uploadProgress])
 
-  const handlePrevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
+  // Handle analysis simulation
+  useEffect(() => {
+    if (currentStep === 2 && analysisProgress < 100) {
+      const timer = setTimeout(() => {
+        setAnalysisProgress((prev) => {
+          const newProgress = Math.min(prev + 1, 100)
+
+          // Update analysis steps based on progress
+          if (newProgress === 20) {
+            setAnalysisSteps((prev) => prev.map((step, i) => (i === 0 ? { ...step, complete: true } : step)))
+          } else if (newProgress === 40) {
+            setAnalysisSteps((prev) => prev.map((step, i) => (i === 1 ? { ...step, complete: true } : step)))
+          } else if (newProgress === 60) {
+            setAnalysisSteps((prev) => prev.map((step, i) => (i === 2 ? { ...step, complete: true } : step)))
+          } else if (newProgress === 80) {
+            setAnalysisSteps((prev) => prev.map((step, i) => (i === 3 ? { ...step, complete: true } : step)))
+          } else if (newProgress === 100) {
+            setAnalysisSteps((prev) => prev.map((step, i) => (i === 4 ? { ...step, complete: true } : step)))
+          }
+
+          return newProgress
+        })
+      }, 100)
+      return () => clearTimeout(timer)
     }
-  }
+  }, [currentStep, analysisProgress])
 
-  const handleCloseDemo = () => {
-    setCurrentStep(0)
-    setIsUploading(false)
-    setUploadProgress(0)
-    document.getElementById("demo-dialog")?.close()
-  }
+  // Auto-advance to next step when current step completes
+  useEffect(() => {
+    if (currentStep === 1 && uploadProgress === 100) {
+      const timer = setTimeout(() => setCurrentStep(2), 500)
+      return () => clearTimeout(timer)
+    }
 
-  const handleUpload = () => {
-    setIsUploading(true)
+    if (currentStep === 2 && analysisProgress === 100) {
+      const timer = setTimeout(() => setCurrentStep(3), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [currentStep, uploadProgress, analysisProgress])
 
-    // Simulate upload progress
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 10
-      setUploadProgress(progress)
+  // Render the current step
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0: // Introduction
+        return (
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Welcome to DaytaTech Demo</CardTitle>
+              <CardDescription>See how our AI-powered data analysis works in 3 simple steps</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col space-y-4">
+                {DEMO_STEPS.map((step, index) => (
+                  <div key={step.id} className="flex items-start space-x-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{step.title}</h3>
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => setCurrentStep(1)} className="w-full">
+                Start Demo
+              </Button>
+            </CardFooter>
+          </Card>
+        )
 
-      if (progress >= 100) {
-        clearInterval(interval)
-        setTimeout(() => {
-          handleNextStep()
-        }, 500)
-      }
-    }, 300)
+      case 1: // Upload Data
+        return (
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Upload Your Data</CardTitle>
+              <CardDescription>Upload your spreadsheet or CSV file for analysis</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-3 p-4 border rounded-md bg-muted/50">
+                <FileSpreadsheet className="h-8 w-8 text-blue-500" />
+                <div className="flex-1">
+                  <p className="font-medium">Q2_Sales_Report.xlsx</p>
+                  <p className="text-sm text-muted-foreground">1.2 MB • Excel Spreadsheet</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Upload progress</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+
+              {uploadProgress === 100 && (
+                <div className="rounded-md bg-green-50 p-3 text-green-700 flex items-center space-x-2">
+                  <Check className="h-5 w-5" />
+                  <span>Upload complete! Preparing for analysis...</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+
+      case 2: // AI Analysis
+        return (
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>AI Analysis in Progress</CardTitle>
+              <CardDescription>Our AI is analyzing your data to extract insights</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Overall progress</span>
+                  <span>{analysisProgress}%</span>
+                </div>
+                <Progress value={analysisProgress} className="h-2" />
+              </div>
+
+              <div className="space-y-3 mt-4">
+                {analysisSteps.map((step, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`h-6 w-6 rounded-full flex items-center justify-center ${step.complete ? "bg-green-100 text-green-700" : "bg-muted"}`}
+                      >
+                        {step.complete ? <Check className="h-4 w-4" /> : index + 1}
+                      </div>
+                      <span>{step.name}</span>
+                    </div>
+                    {step.complete && <Check className="h-4 w-4 text-green-600" />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )
+
+      case 3: // Results
+        return (
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>{demoData.summary.title}</CardTitle>
+              <CardDescription>{demoData.summary.overview}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="summary">Executive Summary</TabsTrigger>
+                  <TabsTrigger value="insights">Key Insights</TabsTrigger>
+                  <TabsTrigger value="charts">Data Visualization</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="summary" className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-lg mb-2 flex items-center">
+                      <TrendingUp className="mr-2 h-5 w-5 text-blue-500" />
+                      Key Highlights
+                    </h3>
+                    <ul className="space-y-2">
+                      {demoData.summary.highlights.map((highlight, index) => (
+                        <li key={index} className="flex items-start">
+                          <div className="h-5 w-5 mr-2 flex items-center justify-center rounded-full bg-blue-100 text-blue-700 text-xs">
+                            {index + 1}
+                          </div>
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium text-lg mb-2 flex items-center">
+                      <Lightbulb className="mr-2 h-5 w-5 text-amber-500" />
+                      Recommendations
+                    </h3>
+                    <ul className="space-y-2">
+                      {demoData.summary.recommendations.map((rec, index) => (
+                        <li key={index} className="flex items-start">
+                          <div className="h-5 w-5 mr-2 flex items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs">
+                            {index + 1}
+                          </div>
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="insights" className="space-y-4">
+                  {demoData.insights.map((insight) => (
+                    <Card key={insight.id}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{insight.title}</CardTitle>
+                        <CardDescription>{insight.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex space-x-4 text-sm">
+                          <div className="flex items-center">
+                            <span className="font-medium mr-1">Impact:</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full ${insight.metrics.impact === "High" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+                            >
+                              {insight.metrics.impact}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium mr-1">Confidence:</span>
+                            <span>{insight.metrics.confidence}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium mr-1">Effort:</span>
+                            <span>{insight.metrics.effort}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{insight.details}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="charts" className="space-y-6">
+                  <div>
+                    <h3 className="font-medium mb-3">Revenue by Segment</h3>
+                    <div className="h-64">
+                      <RevenueGrowthChart
+                        data={{
+                          labels: demoData.charts.revenue.labels,
+                          datasets: demoData.charts.revenue.datasets,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium mb-3">Regional Performance</h3>
+                    <div className="h-64">
+                      <RegionalPerformanceChart
+                        data={{
+                          labels: demoData.charts.regions.labels,
+                          datasets: demoData.charts.regions.datasets,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium mb-3">Customer Metrics</h3>
+                    <div className="h-64">
+                      <CustomerMetricsChart
+                        data={{
+                          labels: demoData.charts.customers.labels,
+                          datasets: demoData.charts.customers.datasets,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setCurrentStep(0)}>
+                Restart Demo
+              </Button>
+              <Button onClick={() => (window.location.href = "/signup")}>Start Free Trial</Button>
+            </CardFooter>
+          </Card>
+        )
+
+      default:
+        return null
+    }
   }
 
   return (
-    <dialog id="demo-dialog" className="modal w-full max-w-4xl rounded-lg shadow-lg p-0 backdrop:bg-black/50">
-      <div className="bg-white rounded-lg overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b p-4">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
-            <span className="text-xl font-bold">DaytaTech Demo</span>
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-2xl font-bold">DaytaTech Demo</h2>
+          <div className="text-sm text-muted-foreground">
+            Step {currentStep + 1} of {DEMO_STEPS.length}
           </div>
-          <button onClick={handleCloseDemo} className="rounded-full p-1 hover:bg-gray-100">
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
-        {/* Progress indicator */}
-        <div className="px-6 pt-4">
-          <div className="flex justify-between mb-2 text-sm text-gray-500">
-            <span>
-              Step {currentStep + 1} of {totalSteps}
-            </span>
-            <span>{getStepTitle(currentStep)}</span>
-          </div>
-          <Progress value={(currentStep / (totalSteps - 1)) * 100} className="h-1" />
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {/* Step 1: Upload */}
-          {currentStep === 0 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">Upload Your Data File</h2>
-              <p className="text-gray-600">
-                DaytaTech accepts data from all major reporting tools. Simply upload your file and our AI will do the
-                rest.
-              </p>
-
-              <div className="border-2 border-dashed rounded-lg p-6 my-8">
-                {isUploading ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <FileUp className="h-5 w-5 text-purple-600" />
-                      <span className="font-medium">Q2_Sales_Report.csv</span>
-                    </div>
-                    <Progress value={uploadProgress} className="h-2 w-full" />
-                    <p className="text-sm text-gray-500">Uploading and analyzing... {uploadProgress}%</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-center py-8">
-                    <div className="mb-4 rounded-full bg-purple-100 p-3">
-                      <Upload className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <h3 className="mb-2 text-lg font-semibold">Upload your data file</h3>
-                    <p className="mb-4 text-sm text-gray-500 max-w-md">
-                      Drag and drop your file here, or click to browse. We support CSV, Excel, Power BI exports, Tableau
-                      exports, and more.
-                    </p>
-                    <Button onClick={handleUpload}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Sample File
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-purple-100 p-1">
-                    <Lightbulb className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-purple-800">Pro Tip</h3>
-                    <p className="text-sm text-gray-600">
-                      DaytaTech automatically detects the structure of your data, but you can also specify your industry
-                      for more relevant insights.
-                    </p>
-                  </div>
+        <div className="relative">
+          <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 bg-muted" />
+          <ol className="relative z-10 flex justify-between">
+            {DEMO_STEPS.map((step, index) => (
+              <li key={step.id} className="flex items-center justify-center">
+                <div
+                  className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                    index <= currentStep ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {index + 1}
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Analysis in Progress */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">AI Analysis in Progress</h2>
-              <p className="text-gray-600">
-                Our AI is analyzing your data, identifying patterns, trends, and insights relevant to your industry.
-              </p>
-
-              <div className="border rounded-lg p-6 my-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="rounded-full bg-green-100 p-1">
-                      <Check className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Data Parsing Complete</h3>
-                      <p className="text-sm text-gray-500">Your file has been successfully parsed and validated.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="rounded-full bg-green-100 p-1">
-                      <Check className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Structure Analysis Complete</h3>
-                      <p className="text-sm text-gray-500">
-                        We've identified the structure and relationships in your data.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="animate-pulse rounded-full bg-purple-100 p-1">
-                      <div className="h-5 w-5 text-purple-600 rounded-full border-2 border-purple-600 border-t-transparent animate-spin"></div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Generating Insights</h3>
-                      <p className="text-sm text-gray-500">Identifying patterns, trends, and anomalies in your data.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 opacity-50">
-                    <div className="rounded-full bg-gray-100 p-1">
-                      <div className="h-5 w-5"></div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Creating Executive Summary</h3>
-                      <p className="text-sm text-gray-500">Preparing a concise summary of key findings.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 opacity-50">
-                    <div className="rounded-full bg-gray-100 p-1">
-                      <div className="h-5 w-5"></div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Generating Recommendations</h3>
-                      <p className="text-sm text-gray-500">Creating actionable recommendations based on your data.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-blue-100 p-1">
-                    <Lightbulb className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-blue-800">How It Works</h3>
-                    <p className="text-sm text-gray-600">
-                      DaytaTech uses advanced AI models trained on industry-specific data to identify patterns that
-                      matter to your business. The more you use DaytaTech, the more it learns about your specific needs.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Executive Summary */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">Executive Summary</h2>
-              <p className="text-gray-600">
-                DaytaTech provides a concise summary of the key insights from your data, highlighting what matters most.
-              </p>
-
-              <div className="border rounded-lg p-6 my-8">
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-purple-50 p-4">
-                    <h3 className="mb-2 font-semibold text-purple-800">Key Findings</h3>
-                    <p className="text-gray-700">
-                      This dataset shows a 24% increase in revenue for Q2 compared to Q1, with the highest growth in the
-                      Northeast region (32%). Customer acquisition costs have decreased by 12% over the last 3 months,
-                      while customer retention has improved by 8%.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <h3 className="mb-2 font-semibold text-blue-800">Industry Context</h3>
-                    <p className="text-gray-700">
-                      Compared to industry benchmarks for SaaS companies of similar size, your revenue growth is above
-                      average (industry average: 18%). Your customer acquisition cost is 15% lower than the industry
-                      average.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg bg-green-50 p-4">
-                    <h3 className="mb-2 font-semibold text-green-800">Opportunities</h3>
-                    <p className="text-gray-700">
-                      Based on the data patterns, there's significant opportunity to expand in the Southwest region,
-                      where your market penetration is lowest but growth potential is high.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-amber-100 p-1">
-                    <Lightbulb className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-amber-800">Why This Matters</h3>
-                    <p className="text-sm text-gray-600">
-                      The executive summary gives you the most important takeaways at a glance, saving you hours of
-                      analysis time. It's perfect for sharing with stakeholders who need the big picture without all the
-                      details.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Detailed Insights */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">Detailed Insights</h2>
-              <p className="text-gray-600">
-                Dive deeper into your data with visual insights, anomalies, and correlations.
-              </p>
-
-              <div className="border rounded-lg p-6 my-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-lg border p-4">
-                    <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <h3 className="text-base font-medium">Regional Performance</h3>
-                      <BarChart3 className="h-4 w-4 text-gray-500" />
-                    </div>
-                    <div className="text-xl font-bold">Northeast +32%</div>
-                    <p className="text-xs text-gray-500">Highest performing region</p>
-                    <div className="mt-4 h-[120px] bg-purple-50 rounded-lg"></div>
-                  </div>
-
-                  <div className="rounded-lg border p-4">
-                    <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <h3 className="text-base font-medium">Anomalies Detected</h3>
-                      <FileText className="h-4 w-4 text-gray-500" />
-                    </div>
-                    <div className="space-y-2 mt-2">
-                      <div className="rounded-md bg-amber-50 p-2">
-                        <div className="font-medium text-amber-800 text-sm">Southwest Region</div>
-                        <div className="text-xs text-gray-600">
-                          Marketing spend increased by 30% but revenue growth is only 12%.
-                        </div>
-                      </div>
-                      <div className="rounded-md bg-green-50 p-2">
-                        <div className="font-medium text-green-800 text-sm">Northeast Region</div>
-                        <div className="text-xs text-gray-600">
-                          Customer retention is 10% higher than company average.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-green-100 p-1">
-                    <Lightbulb className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-green-800">Insight Discovery</h3>
-                    <p className="text-sm text-gray-600">
-                      DaytaTech automatically identifies anomalies, correlations, and patterns that might otherwise go
-                      unnoticed. You can click on any insight to explore it further.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Recommendations */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">Actionable Recommendations</h2>
-              <p className="text-gray-600">
-                DaytaTech doesn't just analyze your data—it tells you what to do next with clear, actionable
-                recommendations.
-              </p>
-
-              <div className="border rounded-lg p-6 my-8">
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-purple-50 p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-full bg-purple-100 p-1">
-                        <Lightbulb className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-purple-800">AI-Generated Recommendations</h3>
-                        <p className="text-sm text-gray-600">
-                          These recommendations are based on patterns in your data, industry benchmarks, and historical
-                          performance.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="rounded-lg border p-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h3 className="font-medium">Increase content marketing in Southwest region</h3>
-                          <p className="text-sm text-gray-500">
-                            Based on the strong correlation between content marketing and customer retention, allocate
-                            25% more budget to content in the Southwest region.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-500">Impact:</span>
-                          <span className="font-medium text-green-600">High</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-500">Effort:</span>
-                          <span className="font-medium text-amber-600">Medium</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border p-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h3 className="font-medium">Replicate Northeast customer acquisition strategy</h3>
-                          <p className="text-sm text-gray-500">
-                            The Northeast region has 15% lower customer acquisition costs. Document and implement their
-                            approach across other regions.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-500">Impact:</span>
-                          <span className="font-medium text-green-600">High</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-500">Effort:</span>
-                          <span className="font-medium text-amber-600">Medium</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-blue-100 p-1">
-                    <Lightbulb className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-blue-800">Ready to Get Started?</h3>
-                    <p className="text-sm text-gray-600">
-                      DaytaTech makes data analysis simple and actionable. Sign up for free and start getting insights
-                      from your data today.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer with navigation buttons */}
-        <div className="flex items-center justify-between border-t p-4">
-          <Button variant="outline" onClick={handlePrevStep} disabled={currentStep === 0}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Previous
-          </Button>
-
-          {currentStep < totalSteps - 1 ? (
-            <Button onClick={handleNextStep}>
-              Next
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={handleCloseDemo}>
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
-    </dialog>
-  )
-}
 
-function getStepTitle(step: number): string {
-  switch (step) {
-    case 0:
-      return "Upload"
-    case 1:
-      return "Analysis"
-    case 2:
-      return "Summary"
-    case 3:
-      return "Insights"
-    case 4:
-      return "Recommendations"
-    default:
-      return ""
-  }
+      {renderStep()}
+    </div>
+  )
 }

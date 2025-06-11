@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase"
+import { customFieldsService } from "@/lib/custom-fields-service"
 import type { Database } from "@/types/database.types"
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"]
@@ -10,8 +11,8 @@ export interface SignUpData {
   email: string
   password: string
   company?: string
-  industry?: string
-  role?: string
+  industry: string
+  role: string
 }
 
 export interface SignInData {
@@ -41,6 +42,57 @@ export async function signUp(data: SignUpData) {
 
     if (!authData.user) {
       return { success: false, error: "Failed to create user" }
+    }
+
+    // Record custom fields if they're not in predefined lists
+    const predefinedIndustries = [
+      "technology",
+      "finance",
+      "healthcare",
+      "retail",
+      "manufacturing",
+      "education",
+      "consulting",
+      "real-estate",
+      "media",
+      "transportation",
+      "energy",
+      "government",
+      "nonprofit",
+      "agriculture",
+    ]
+
+    const predefinedRoles = [
+      "business-analyst",
+      "data-analyst",
+      "data-scientist",
+      "data-engineer",
+      "product-manager",
+      "marketing-manager",
+      "operations-manager",
+      "financial-analyst",
+      "executive",
+      "consultant",
+      "researcher",
+      "student",
+    ]
+
+    // Record custom industry if not predefined
+    if (!predefinedIndustries.includes(data.industry.toLowerCase())) {
+      try {
+        await customFieldsService.recordCustomField("industry", data.industry, authData.user.id)
+      } catch (error) {
+        console.error("Error recording custom industry:", error)
+      }
+    }
+
+    // Record custom role if not predefined
+    if (!predefinedRoles.includes(data.role.toLowerCase())) {
+      try {
+        await customFieldsService.recordCustomField("role", data.role, authData.user.id)
+      } catch (error) {
+        console.error("Error recording custom role:", error)
+      }
     }
 
     // Profile will be created automatically by the database trigger

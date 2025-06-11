@@ -9,9 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ContactSalesButton } from "@/components/contact-sales-button"
 import { UpgradeAccountModal } from "@/components/upgrade-account-modal"
 import { Logo } from "@/components/ui/logo"
+import { DemoModal } from "@/components/demo-modal"
 
 export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showDemoModal, setShowDemoModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<"basic" | "pro" | "team" | "enterprise">("pro")
 
   const handlePlanSelect = (plan: "basic" | "pro" | "team" | "enterprise") => {
@@ -31,8 +33,11 @@ export default function Home() {
             <Link href="#pricing" className="text-sm font-medium hover:underline underline-offset-4">
               Pricing
             </Link>
-            <Link href="#faq" className="text-sm font-medium hover:underline underline-offset-4">
+            <Link href="/faq" className="text-sm font-medium hover:underline underline-offset-4">
               FAQ
+            </Link>
+            <Link href="/security" className="text-sm font-medium hover:underline underline-offset-4">
+              Security
             </Link>
           </nav>
           <div className="flex items-center gap-4">
@@ -68,11 +73,9 @@ export default function Home() {
                       Start Free Trial <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
-                  <Link href="/demo">
-                    <Button size="lg" variant="outline">
-                      See How It Works
-                    </Button>
-                  </Link>
+                  <Button size="lg" variant="outline" onClick={() => setShowDemoModal(true)}>
+                    See How It Works
+                  </Button>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <div className="flex items-center gap-1">
@@ -337,7 +340,7 @@ export default function Home() {
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-4 mt-12">
               <Card className="border-2 border-gray-200">
                 <CardHeader>
-                  <CardTitle>Starter</CardTitle>
+                  <CardTitle>Basic</CardTitle>
                   <div className="text-3xl font-bold">$39</div>
                   <CardDescription>Perfect for small businesses</CardDescription>
                 </CardHeader>
@@ -358,7 +361,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>10 data analyses per month</span>
+                      <span>5 data analyses per month</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -439,7 +442,7 @@ export default function Home() {
                   <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800 mb-2">
                     Most Popular
                   </div>
-                  <CardTitle>Professional</CardTitle>
+                  <CardTitle>Pro</CardTitle>
                   <div className="text-3xl font-bold">$99</div>
                   <CardDescription>For growing businesses</CardDescription>
                 </CardHeader>
@@ -460,7 +463,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Unlimited data analyses</span>
+                      <span>20 data analyses per month</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -559,7 +562,7 @@ export default function Home() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>Everything in Professional</span>
+                      <span>Everything in Pro</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <svg
@@ -721,145 +724,210 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-blue-50">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">Security</div>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Enterprise-Grade Security</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Your data is protected with the same security standards used by Fortune 500 companies. We implement
+                  comprehensive security measures so you can focus on insights, not security concerns.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 mt-12">
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
+                <CardHeader className="text-center">
+                  <Shield className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <CardTitle className="text-lg">SOC 2 Type II</CardTitle>
+                  <CardDescription>Certified security compliance with annual audits</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
+                <CardHeader className="text-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-8 w-8 text-blue-600 mx-auto mb-2"
+                  >
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                    <path d="m7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <CardTitle className="text-lg">AES-256 Encryption</CardTitle>
+                  <CardDescription>Military-grade encryption for data at rest and in transit</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
+                <CardHeader className="text-center">
+                  <Database className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <CardTitle className="text-lg">AWS Infrastructure</CardTitle>
+                  <CardDescription>Enterprise cloud security with 99.99% uptime SLA</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
+                <CardHeader className="text-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-8 w-8 text-blue-600 mx-auto mb-2"
+                  >
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  </svg>
+                  <CardTitle className="text-lg">Zero Trust Model</CardTitle>
+                  <CardDescription>Advanced access controls and continuous verification</CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+            <div className="flex justify-center mt-8">
+              <Link href="/security">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                >
+                  <Shield className="h-4 w-4" />
+                  View Security White Paper
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-blue-50 to-white">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">FAQ</div>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Frequently Asked Questions</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Everything you need to know about getting expert data insights without the experts.
+                  Get answers to common questions about DaytaTech's AI-powered data analysis platform.
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 mt-12">
-              <Card>
+            <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2 mt-12">
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
                 <CardHeader>
-                  <CardTitle>Do I need technical skills to use DaytaTech?</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <Brain className="h-5 w-5 text-blue-600" />
+                    Do I need technical skills to use DaytaTech?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500">
-                    Not at all! DaytaTech is designed for business users without technical expertise. Simply upload your
-                    data files (Excel, CSV, etc.), and our AI does all the complex analysis. You get clear, actionable
-                    insights in plain English—no coding, SQL, or data science knowledge required.
+                  <p className="text-sm text-gray-600">
+                    Not at all! DaytaTech is designed for business users without technical backgrounds. Simply upload
+                    your data files and get expert-level insights in plain English. No SQL, coding, or data science
+                    knowledge required.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
                 <CardHeader>
-                  <CardTitle>How is this different from hiring data professionals?</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    How is this different from hiring data professionals?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500">
-                    <strong>Cost:</strong> Get expert-level analysis for $39-99/month vs. $100K+ annually for data
-                    professionals.
-                    <br />
-                    <br />
-                    <strong>Speed:</strong> Get insights in minutes, not weeks of project planning and execution.
-                    <br />
-                    <br />
-                    <strong>Availability:</strong> 24/7 access to analysis vs. limited availability of human experts.
-                    <br />
-                    <br />
-                    <strong>Scalability:</strong> Analyze unlimited datasets without hiring additional staff.
+                  <p className="text-sm text-gray-600">
+                    DaytaTech gives you instant access to data science expertise at a fraction of the cost. While hiring
+                    data professionals can take months and cost $100K+ annually, DaytaTech delivers expert analysis
+                    starting at $39/month with no hiring delays.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
                 <CardHeader>
-                  <CardTitle>What if I already have data engineers or data scientists?</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <Database className="h-5 w-5 text-blue-600" />
+                    What if I already have data engineers or data scientists?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500">
-                    Perfect! DaytaTech complements your existing team by:
-                    <br />
-                    <br />• <strong>Accelerating their work:</strong> Get initial insights faster so they can focus on
-                    strategic projects
-                    <br />• <strong>Democratizing access:</strong> Business users get answers without waiting for data
-                    team availability
-                    <br />• <strong>Quality assurance:</strong> AI validates findings and catches potential issues
-                    <br />• <strong>Scaling expertise:</strong> Extend your team's capabilities across the organization
+                  <p className="text-sm text-gray-600">
+                    DaytaTech accelerates your existing team's work and democratizes insights across your organization.
+                    Your data professionals can focus on strategic projects while business users get immediate answers
+                    to their questions.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
                 <CardHeader>
-                  <CardTitle>What types of insights can I expect?</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                    What types of insights can I expect?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500">
-                    <strong>Revenue Opportunities:</strong> Identify high-performing segments, optimal pricing, market
-                    expansion opportunities
-                    <br />
-                    <br />
-                    <strong>Cost Optimization:</strong> Find inefficiencies, reduce waste, optimize resource allocation
-                    <br />
-                    <br />
-                    <strong>Risk Detection:</strong> Early warning signs for customer churn, market changes, operational
-                    issues
-                    <br />
-                    <br />
-                    <strong>Performance Analysis:</strong> Track KPIs, benchmark against industry standards, identify
-                    improvement areas
+                  <p className="text-sm text-gray-600">
+                    Get revenue opportunities, cost optimization recommendations, risk alerts, customer behavior
+                    patterns, operational efficiency insights, and predictive analytics—all explained in business terms
+                    with specific action items.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
                 <CardHeader>
-                  <CardTitle>How accurate and reliable are the AI insights?</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    How accurate and reliable are the AI insights?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500">
-                    Our AI is trained on thousands of business datasets and uses the same statistical methods that data
-                    scientists use. We provide confidence scores for all insights and clearly indicate when more data is
-                    needed for reliable conclusions. Many customers report that our insights match or exceed what they
-                    previously got from expensive consulting projects.
+                  <p className="text-sm text-gray-600">
+                    Our AI is trained on enterprise-grade data science methodologies and continuously validated against
+                    expert analysis. We provide confidence scores with each insight and highlight areas that may need
+                    human verification.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-2 border-blue-200 bg-blue-50/50">
                 <CardHeader>
-                  <CardTitle>What data formats do you support?</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    What data formats do you support?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500">
-                    We support all common business data formats: Excel (.xlsx, .xls), CSV, JSON, Google Sheets exports,
-                    and database exports. For Professional plans and above, we also support direct connections to
-                    databases, cloud storage, and business applications like Salesforce, HubSpot, and QuickBooks.
+                  <p className="text-sm text-gray-600">
+                    We support Excel, CSV, JSON, SQL databases, and most common business data formats. Our Pro plan
+                    includes direct database connections and API integrations for seamless data import.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Is my business data secure?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    <strong>Data Protection:</strong> Enterprise-grade encryption, secure processing environments, and
-                    automatic data deletion after analysis.
-                    <br />
-                    <br />
-                    <strong>Privacy:</strong> We never store your raw data permanently or share it with third parties.
-                    Only statistical patterns and insights are retained.
-                    <br />
-                    <br />
-                    <strong>Compliance:</strong> SOC 2 Type II certified, GDPR and CCPA compliant, with audit trails for
-                    all data access.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Can I try it before committing to a paid plan?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    We offer a 30-day free trial with full access to all features. No credit card required to start. You
-                    can upload your own data and see exactly what insights you'll get. Most users know within the first
-                    few analyses whether DaytaTech will be valuable for their business.
-                  </p>
-                </CardContent>
-              </Card>
+            </div>
+            <div className="flex justify-center mt-12">
+              <div className="bg-blue-600 rounded-lg p-6 text-center text-white max-w-2xl">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Brain className="h-6 w-6" />
+                  <h3 className="text-xl font-semibold">Need More Answers?</h3>
+                </div>
+                <p className="text-blue-100 mb-4">
+                  Explore our comprehensive FAQ section with detailed answers about features, security, integrations,
+                  and more.
+                </p>
+                <Link href="/faq">
+                  <Button size="lg" variant="secondary" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    View Complete FAQ Guide
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -868,11 +936,10 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-                  Ready to Feel Like You Have a Data Team?
-                </h2>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Ready to Get Expert Data Insights?</h2>
                 <p className="max-w-[900px] text-blue-100 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Join thousands of businesses getting expert-level data insights without the expert-level costs.
+                  Join thousands of businesses using DaytaTech to make data-driven decisions without hiring data
+                  experts. Start your free trial today—no credit card required.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -881,9 +948,14 @@ export default function Home() {
                     Start Free Trial <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <ContactSalesButton size="lg" className="bg-white text-black hover:bg-gray-100 border-white">
-                  Contact Sales
-                </ContactSalesButton>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-white border-white hover:bg-white hover:text-blue-600"
+                  onClick={() => setShowDemoModal(true)}
+                >
+                  Watch Demo
+                </Button>
               </div>
             </div>
           </div>
@@ -901,20 +973,28 @@ export default function Home() {
             <Link href="/privacy" className="text-sm text-gray-500 hover:underline underline-offset-4">
               Privacy
             </Link>
+            <Link href="/faq" className="text-sm text-gray-500 hover:underline underline-offset-4">
+              FAQ
+            </Link>
+            <Link href="/security" className="text-sm text-gray-500 hover:underline underline-offset-4">
+              Security
+            </Link>
           </div>
         </div>
       </footer>
 
       {showUpgradeModal && (
         <UpgradeAccountModal
-          initialPlan={selectedPlan}
           onClose={() => setShowUpgradeModal(false)}
           onSuccess={() => {
             setShowUpgradeModal(false)
-            window.location.href = "/signup"
+            // Handle success if needed
           }}
+          initialPlan={selectedPlan}
         />
       )}
+
+      <DemoModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   )
 }

@@ -5,8 +5,12 @@ import type React from "react"
 import { useState, useCallback, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, FileText, Loader2, X } from "lucide-react"
+import { Upload, FileText, Loader2, X, Info } from "lucide-react"
 import { analytics } from "@/lib/simple-analytics"
+import { RoleSelector, type AnalysisRole } from "@/components/role-selector"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 
 interface FileUploaderProps {
   accountType?: string
@@ -14,6 +18,7 @@ interface FileUploaderProps {
   exportCredits?: number
   userRole?: string
   disabled?: boolean
+  isPremium?: boolean
   onUploadStart?: (fileName: string, fileSize: number) => Promise<void>
   onUploadComplete?: (fileName: string, fileSize: number, analysisId: string) => Promise<void>
   onUploadError?: (fileName: string, error: string) => Promise<void>
@@ -25,6 +30,7 @@ export function FileUploader({
   exportCredits = 0,
   userRole,
   disabled = false,
+  isPremium = false,
   onUploadStart,
   onUploadComplete,
   onUploadError,
@@ -32,7 +38,12 @@ export function FileUploader({
   const [uploading, setUploading] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
+  const [analysisRole, setAnalysisRole] = useState<AnalysisRole>("business_analyst")
+  const [analysisStage, setAnalysisStage] = useState<string>("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const progressInterval = useRef<NodeJS.Timeout | null>(null)
 
   const handleFiles = useCallback(
     async (files: FileList | null) => {
@@ -63,6 +74,9 @@ export function FileUploader({
 
       setUploading(true)
       setUploadedFile(file)
+      setUploadProgress(0)
+      setAnalysisProgress(0)
+      setAnalysisStage("Preparing upload")
 
       try {
         // Call upload start callback
@@ -75,11 +89,49 @@ export function FileUploader({
           fileName: file.name,
           fileSize: file.size,
           fileType: file.type,
+          analysisRole,
+          isPremium,
           timestamp: new Date().toISOString(),
         })
 
+        // Simulate upload progress
+        progressInterval.current = setInterval(() => {
+          setUploadProgress((prev) => {
+            if (prev >= 100) {
+              if (progressInterval.current) clearInterval(progressInterval.current)
+              return 100
+            }
+            return prev + 5
+          })
+        }, 150)
+
         // Simulate upload delay
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+
+        if (progressInterval.current) clearInterval(progressInterval.current)
+        setUploadProgress(100)
+        setAnalysisStage("Processing data")
+
+        // Simulate analysis progress
+        progressInterval.current = setInterval(() => {
+          setAnalysisProgress((prev) => {
+            if (prev >= 100) {
+              if (progressInterval.current) clearInterval(progressInterval.current)
+              return 100
+            }
+            return prev + 1
+          })
+        }, 100)
+
+        // Update analysis stages
+        setTimeout(() => setAnalysisStage("Analyzing data structure"), 1000)
+        setTimeout(() => setAnalysisStage("Performing statistical analysis"), 3000)
+        setTimeout(() => setAnalysisStage("Generating insights"), 5000)
+
+        if (isPremium) {
+          setTimeout(() => setAnalysisStage(`Applying ${analysisRole.replace("_", " ")} perspective`), 7000)
+          setTimeout(() => setAnalysisStage("Creating executive summary"), 9000)
+        }
 
         // Generate mock analysis ID
         const analysisId = `analysis_${Date.now()}`
@@ -88,8 +140,17 @@ export function FileUploader({
         await analytics.trackEvent("analysis_started", "current-user", {
           fileName: file.name,
           analysisId,
+          analysisRole,
+          isPremium,
           timestamp: new Date().toISOString(),
         })
+
+        // Simulate full analysis time
+        await new Promise((resolve) => setTimeout(resolve, isPremium ? 10000 : 6000))
+
+        if (progressInterval.current) clearInterval(progressInterval.current)
+        setAnalysisProgress(100)
+        setAnalysisStage("Analysis complete")
 
         // Call upload complete callback
         if (onUploadComplete) {
@@ -108,10 +169,11 @@ export function FileUploader({
 
         alert(`Upload failed: ${errorMessage}`)
       } finally {
+        if (progressInterval.current) clearInterval(progressInterval.current)
         setUploading(false)
       }
     },
-    [onUploadStart, onUploadComplete, onUploadError],
+    [onUploadStart, onUploadComplete, onUploadError, analysisRole, isPremium],
   )
 
   const handleDrop = useCallback(
@@ -166,7 +228,11 @@ export function FileUploader({
   return (
     <div className="w-full max-w-2xl mx-auto">
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-6">
+          {isPremium && (
+            <RoleSelector selectedRole={analysisRole} onChange={setAnalysisRole} isPremium={true} className="mb-4" />
+          )}
+
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -190,12 +256,57 @@ export function FileUploader({
             />
 
             {uploading ? (
-              <div className="space-y-4">
-                <Loader2 className="h-12 w-12 mx-auto animate-spin text-blue-600" />
-                <div>
-                  <h3 className="text-lg font-semibold">Processing {uploadedFile?.name}</h3>
-                  <p className="text-gray-500">Analyzing your data with AI...</p>
+              <div className="space-y-6">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative h-16 w-16">
+                    <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-medium text-blue-600">
+                        {uploadProgress === 100 ? analysisProgress : uploadProgress}%
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Processing {uploadedFile?.name}</h3>
+                    <p className="text-gray-500">{analysisStage}</p>
+                  </div>
                 </div>
+
+                <div className="space-y-2 w-full max-w-md mx-auto">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Upload</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} className="h-1" />
+
+                  {uploadProgress === 100 && (
+                    <>
+                      <div className="flex justify-between text-xs text-gray-500 mt-4">
+                        <span>Analysis</span>
+                        <span>{analysisProgress}%</span>
+                      </div>
+                      <Progress value={analysisProgress} className="h-1" />
+                    </>
+                  )}
+                </div>
+
+                {isPremium && (
+                  <div className="mt-4 text-sm">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {analysisRole.replace("_", " ")} Analysis
+                    </Badge>
+                    {analysisRole === "data_scientist" && (
+                      <p className="mt-2 text-xs text-gray-500">
+                        Applying statistical modeling and machine learning techniques
+                      </p>
+                    )}
+                    {analysisRole === "data_engineer" && (
+                      <p className="mt-2 text-xs text-gray-500">
+                        Evaluating data quality and structure optimization opportunities
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : uploadedFile ? (
               <div className="space-y-4">
@@ -238,10 +349,33 @@ export function FileUploader({
           </div>
 
           {!disabled && (
-            <div className="mt-4 text-sm text-gray-500 text-center">
-              <p>Supported formats: CSV, Excel (.xlsx, .xls), JSON</p>
-              <p>Maximum file size: 50MB</p>
-              {uploadCredits !== undefined && <p>Remaining uploads: {uploadCredits}</p>}
+            <div className="mt-4 text-sm text-gray-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p>Supported formats: CSV, Excel (.xlsx, .xls), JSON</p>
+                  <p>Maximum file size: 50MB</p>
+                  {uploadCredits !== undefined && <p>Remaining uploads: {uploadCredits}</p>}
+                </div>
+
+                {isPremium && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-blue-600 cursor-help">
+                          <Info className="h-4 w-4 mr-1" />
+                          <span className="text-xs">Premium Analysis</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>
+                          Your premium membership enables specialized analysis perspectives, deeper insights, and
+                          comprehensive executive summaries.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
           )}
         </CardContent>

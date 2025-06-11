@@ -28,7 +28,9 @@ export default function SignupPage() {
     password: "",
     company: "",
     industry: "",
+    customIndustry: "",
     role: "",
+    customRole: "",
     agreeToTerms: false,
   })
 
@@ -48,13 +50,47 @@ export default function SignupPage() {
 
   const passwordStrength = getPasswordStrength(formData.password)
 
+  // Get effective industry and role values
+  const getEffectiveIndustry = () => {
+    return formData.industry === "other" ? formData.customIndustry : formData.industry
+  }
+
+  const getEffectiveRole = () => {
+    return formData.role === "other" ? formData.customRole : formData.role
+  }
+
+  // Check if form is valid for submission
+  const isFormValid = () => {
+    const requiredFieldsFilled =
+      formData.firstName &&
+      formData.lastName &&
+      formData.email &&
+      formData.password &&
+      getEffectiveIndustry() && // Industry is required
+      getEffectiveRole() // Role is required
+
+    const passwordValid = passwordStrength.score >= 2
+    const termsAgreed = formData.agreeToTerms
+
+    return requiredFieldsFilled && passwordValid && termsAgreed
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-    setFormData((prev) => ({ ...prev, [id]: value }))
+    const { id, value, type, checked } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [id]: type === "checkbox" ? checked : value,
+    }))
   }
 
   const handleSelectChange = (field: string) => (value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+      // Clear custom fields when switching away from "other"
+      ...(field === "industry" && value !== "other" && { customIndustry: "" }),
+      ...(field === "role" && value !== "other" && { customRole: "" }),
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,10 +106,28 @@ export default function SignupPage() {
       return
     }
 
-    if (passwordStrength.score < 3) {
+    if (!getEffectiveIndustry()) {
+      toast({
+        title: "Industry Required",
+        description: "Please select your industry or specify a custom one.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!getEffectiveRole()) {
+      toast({
+        title: "Role Required",
+        description: "Please select your role or specify a custom one.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (passwordStrength.score < 2) {
       toast({
         title: "Password Too Weak",
-        description: "Please create a stronger password.",
+        description: "Please create a stronger password with at least 8 characters.",
         variant: "destructive",
       })
       return
@@ -91,14 +145,23 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      const result = await signUp(formData)
+      // Prepare data with effective industry and role
+      const signupData = {
+        ...formData,
+        industry: getEffectiveIndustry(),
+        role: getEffectiveRole(),
+      }
+
+      const result = await signUp(signupData)
 
       if (result.success) {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account.",
+          description: "Welcome to DaytaTech! Redirecting to your dashboard...",
         })
-        router.push("/verify-email")
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 1500)
       } else {
         toast({
           title: "Signup Failed",
@@ -107,6 +170,7 @@ export default function SignupPage() {
         })
       }
     } catch (error) {
+      console.error("Signup error:", error)
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -176,26 +240,43 @@ export default function SignupPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="industry">Industry</Label>
+                <Label htmlFor="industry">Industry *</Label>
                 <Select onValueChange={handleSelectChange("industry")} value={formData.industry}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="technology">Technology & Software</SelectItem>
                     <SelectItem value="finance">Finance & Banking</SelectItem>
-                    <SelectItem value="healthcare">Healthcare</SelectItem>
+                    <SelectItem value="healthcare">Healthcare & Life Sciences</SelectItem>
                     <SelectItem value="retail">Retail & E-commerce</SelectItem>
-                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="consulting">Consulting</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="manufacturing">Manufacturing & Industrial</SelectItem>
+                    <SelectItem value="education">Education & Training</SelectItem>
+                    <SelectItem value="consulting">Consulting & Professional Services</SelectItem>
+                    <SelectItem value="real-estate">Real Estate & Construction</SelectItem>
+                    <SelectItem value="media">Media & Entertainment</SelectItem>
+                    <SelectItem value="transportation">Transportation & Logistics</SelectItem>
+                    <SelectItem value="energy">Energy & Utilities</SelectItem>
+                    <SelectItem value="government">Government & Public Sector</SelectItem>
+                    <SelectItem value="nonprofit">Non-profit & NGO</SelectItem>
+                    <SelectItem value="agriculture">Agriculture & Food</SelectItem>
+                    <SelectItem value="other">Other (Please specify)</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.industry === "other" && (
+                  <Input
+                    id="customIndustry"
+                    placeholder="Please specify your industry"
+                    value={formData.customIndustry}
+                    onChange={handleChange}
+                    className="mt-2"
+                    required
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role">Role *</Label>
                 <Select onValueChange={handleSelectChange("role")} value={formData.role}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
@@ -205,11 +286,27 @@ export default function SignupPage() {
                     <SelectItem value="data-analyst">Data Analyst</SelectItem>
                     <SelectItem value="data-scientist">Data Scientist</SelectItem>
                     <SelectItem value="data-engineer">Data Engineer</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="executive">Executive</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="product-manager">Product Manager</SelectItem>
+                    <SelectItem value="marketing-manager">Marketing Manager</SelectItem>
+                    <SelectItem value="operations-manager">Operations Manager</SelectItem>
+                    <SelectItem value="financial-analyst">Financial Analyst</SelectItem>
+                    <SelectItem value="executive">Executive/C-Level</SelectItem>
+                    <SelectItem value="consultant">Consultant</SelectItem>
+                    <SelectItem value="researcher">Researcher</SelectItem>
+                    <SelectItem value="student">Student/Academic</SelectItem>
+                    <SelectItem value="other">Other (Please specify)</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.role === "other" && (
+                  <Input
+                    id="customRole"
+                    placeholder="Please specify your role"
+                    value={formData.customRole}
+                    onChange={handleChange}
+                    className="mt-2"
+                    required
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
@@ -242,9 +339,9 @@ export default function SignupPage() {
                           className={`h-full rounded-full transition-all ${
                             passwordStrength.score < 2
                               ? "bg-red-500 w-1/4"
-                              : passwordStrength.score < 4
+                              : passwordStrength.score < 3
                                 ? "bg-yellow-500 w-2/4"
-                                : passwordStrength.score < 5
+                                : passwordStrength.score < 4
                                   ? "bg-blue-500 w-3/4"
                                   : "bg-green-500 w-full"
                           }`}
@@ -253,9 +350,9 @@ export default function SignupPage() {
                       <span className="text-xs text-gray-500">
                         {passwordStrength.score < 2
                           ? "Weak"
-                          : passwordStrength.score < 4
+                          : passwordStrength.score < 3
                             ? "Fair"
-                            : passwordStrength.score < 5
+                            : passwordStrength.score < 4
                               ? "Good"
                               : "Strong"}
                       </span>
@@ -295,7 +392,7 @@ export default function SignupPage() {
                   type="checkbox"
                   id="agreeToTerms"
                   checked={formData.agreeToTerms}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, agreeToTerms: e.target.checked }))}
+                  onChange={handleChange}
                   className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   required
                 />
@@ -320,11 +417,7 @@ export default function SignupPage() {
                 </label>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading || passwordStrength.score < 3 || !formData.agreeToTerms}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading || !isFormValid()}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -336,6 +429,26 @@ export default function SignupPage() {
                   </>
                 )}
               </Button>
+
+              {/* Debug info - remove in production */}
+              <div className="text-xs text-gray-500 mt-2">
+                <p>Form Valid: {isFormValid() ? "✅" : "❌"}</p>
+                <p>
+                  Required Fields:{" "}
+                  {formData.firstName &&
+                  formData.lastName &&
+                  formData.email &&
+                  formData.password &&
+                  getEffectiveIndustry() &&
+                  getEffectiveRole()
+                    ? "✅"
+                    : "❌"}
+                </p>
+                <p>Industry: {getEffectiveIndustry() ? "✅" : "❌"}</p>
+                <p>Role: {getEffectiveRole() ? "✅" : "❌"}</p>
+                <p>Password Score: {passwordStrength.score}/5 (need 2+)</p>
+                <p>Terms Agreed: {formData.agreeToTerms ? "✅" : "❌"}</p>
+              </div>
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-500">
