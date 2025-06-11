@@ -22,52 +22,100 @@ export async function sendContactEmail(formData: ContactFormData) {
     // Validate form data
     const validatedData = formSchema.parse(formData)
 
-    // Format the email content
+    // Format the email content with all field values
     const emailText = `
 New Sales Inquiry from ${validatedData.name}
 
-Contact Information:
--------------------
-Name: ${validatedData.name}
-Email: ${validatedData.email}
+CONTACT INFORMATION:
+===================
+Full Name: ${validatedData.name}
+Email Address: ${validatedData.email}
 Company: ${validatedData.company || "Not provided"}
-Phone: ${validatedData.phone || "Not provided"}
+Phone Number: ${validatedData.phone || "Not provided"}
 
-Inquiry Details:
---------------
-${validatedData.description}
+INQUIRY DETAILS:
+===============
+Description: ${validatedData.description}
 
-Requested Meeting:
-----------------
-Date: ${validatedData.date}
-Time: ${validatedData.timeSlot}
+MEETING REQUEST:
+===============
+Preferred Date: ${validatedData.date}
+Preferred Time: ${validatedData.timeSlot}
 
-${validatedData.attachmentName ? `Attachment: ${validatedData.attachmentName} (will be sent separately)` : "No attachment provided"}
-    `
+ADDITIONAL INFORMATION:
+======================
+${validatedData.attachmentName ? `File Attachment: ${validatedData.attachmentName} (user has file ready to share)` : "No file attachment provided"}
 
-    // Format HTML version
+NEXT STEPS:
+==========
+- Follow up within 24 hours
+- Schedule meeting for requested date/time
+- ${validatedData.attachmentName ? "Request file attachment via email" : "No file follow-up needed"}
+- Prepare demo based on company size and industry
+
+This inquiry was submitted through the DaytaTech.ai contact form.
+`
+
+    // Format HTML version with better styling
     const emailHtml = `
-<h2>New Sales Inquiry from ${validatedData.name}</h2>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
+    New Sales Inquiry from ${validatedData.name}
+  </h2>
 
-<h3>Contact Information:</h3>
-<ul>
-  <li><strong>Name:</strong> ${validatedData.name}</li>
-  <li><strong>Email:</strong> ${validatedData.email}</li>
-  <li><strong>Company:</strong> ${validatedData.company || "Not provided"}</li>
-  <li><strong>Phone:</strong> ${validatedData.phone || "Not provided"}</li>
-</ul>
+  <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Contact Information</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td style="padding: 5px 0; font-weight: bold;">Full Name:</td><td style="padding: 5px 0;">${validatedData.name}</td></tr>
+      <tr><td style="padding: 5px 0; font-weight: bold;">Email:</td><td style="padding: 5px 0;"><a href="mailto:${validatedData.email}">${validatedData.email}</a></td></tr>
+      <tr><td style="padding: 5px 0; font-weight: bold;">Company:</td><td style="padding: 5px 0;">${validatedData.company || "Not provided"}</td></tr>
+      <tr><td style="padding: 5px 0; font-weight: bold;">Phone:</td><td style="padding: 5px 0;">${validatedData.phone || "Not provided"}</td></tr>
+    </table>
+  </div>
 
-<h3>Inquiry Details:</h3>
-<p>${validatedData.description}</p>
+  <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Inquiry Details</h3>
+    <p style="line-height: 1.6;">${validatedData.description}</p>
+  </div>
 
-<h3>Requested Meeting:</h3>
-<p>
-  <strong>Date:</strong> ${validatedData.date}<br>
-  <strong>Time:</strong> ${validatedData.timeSlot}
-</p>
+  <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Meeting Request</h3>
+    <p><strong>Preferred Date:</strong> ${validatedData.date}</p>
+    <p><strong>Preferred Time:</strong> ${validatedData.timeSlot}</p>
+  </div>
 
-${validatedData.attachmentName ? `<p><strong>Attachment:</strong> ${validatedData.attachmentName} (will be sent separately)</p>` : "<p>No attachment provided</p>"}
-    `
+  ${
+    validatedData.attachmentName
+      ? `
+  <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">File Attachment</h3>
+    <p><strong>File:</strong> ${validatedData.attachmentName}</p>
+    <p><em>Note: Follow up with customer to receive the file attachment.</em></p>
+  </div>
+  `
+      : `
+  <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <p><em>No file attachment provided.</em></p>
+  </div>
+  `
+  }
+
+  <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Next Steps</h3>
+    <ul style="line-height: 1.6;">
+      <li>Follow up within 24 hours</li>
+      <li>Schedule meeting for ${validatedData.date} at ${validatedData.timeSlot}</li>
+      ${validatedData.attachmentName ? "<li>Request file attachment via email</li>" : "<li>No file follow-up needed</li>"}
+      <li>Prepare demo based on company size and industry</li>
+    </ul>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+  <p style="color: #6b7280; font-size: 14px; text-align: center;">
+    This inquiry was submitted through the DaytaTech.ai contact form.
+  </p>
+</div>
+`
 
     // Send the email
     const result = await sendEmail({

@@ -36,3 +36,6 @@ export function createServerClient() {
 // Export for backward compatibility
 export { supabase as default }
 export type { Database }
+
+// Export createClient function for other modules
+export { createClient } from "@supabase/supabase-js"

@@ -359,3 +359,57 @@ export async function checkUsageLimit(
     return { current: 0, limit: 0, canProceed: false }
   }
 }
+
+// Add this function after the existing functions
+export async function getUserProfile(userId: string): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 is "not found"
+      throw error
+    }
+
+    return data || null
+  } catch (error) {
+    console.error("Error fetching user profile:", error)
+    return null
+  }
+}
+
+export async function createUserProfile(
+  profile: Database["public"]["Tables"]["profiles"]["Insert"],
+): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase.from("profiles").insert(profile).select().single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error("Error creating user profile:", error)
+    return null
+  }
+}
+
+export async function updateUserProfile(
+  userId: string,
+  updates: Database["public"]["Tables"]["profiles"]["Update"],
+): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error("Error updating user profile:", error)
+    return null
+  }
+}

@@ -88,12 +88,12 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
       return
     }
 
-    // Prepare data for submission
+    // Prepare comprehensive data for submission - include ALL fields
     const submissionData: ContactFormData = {
       name: formData.name,
       email: formData.email,
-      company: formData.company,
-      phone: formData.phone,
+      company: formData.company || "Not provided", // Ensure empty fields show as "Not provided"
+      phone: formData.phone || "Not provided",
       description: formData.description,
       date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
       timeSlot: formData.timeSlot,
@@ -117,8 +117,9 @@ export function ContactSalesForm({ onClose }: { onClose: () => void }) {
 
       if (result.success) {
         toast({
-          title: "Request submitted!",
-          description: "Your information has been sent to our sales team. They will contact you shortly.",
+          title: "Request submitted successfully!",
+          description:
+            "Your information has been sent to our sales team. They will contact you shortly to discuss your needs.",
         })
         onClose()
       } else {

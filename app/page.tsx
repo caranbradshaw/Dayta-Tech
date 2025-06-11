@@ -10,11 +10,13 @@ import { ContactSalesButton } from "@/components/contact-sales-button"
 import { UpgradeAccountModal } from "@/components/upgrade-account-modal"
 import { Logo } from "@/components/ui/logo"
 import { DemoModal } from "@/components/demo-modal"
+import { ContactSupportModal } from "@/components/contact-support-modal"
 
 export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showDemoModal, setShowDemoModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<"basic" | "pro" | "team" | "enterprise">("pro")
+  const [showContactSupport, setShowContactSupport] = useState(false)
 
   const handlePlanSelect = (plan: "basic" | "pro" | "team" | "enterprise") => {
     setSelectedPlan(plan)
@@ -794,6 +796,87 @@ export default function Home() {
                 </CardHeader>
               </Card>
             </div>
+
+            {/* White Paper Downloads Section */}
+            <div className="mt-16 bg-white rounded-lg border-2 border-blue-200 p-8">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-blue-800 mb-4">Security Documentation</h3>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Download our comprehensive security documentation to understand how we protect your data and ensure
+                  compliance with industry standards.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                <Card className="border border-blue-200 hover:border-blue-400 transition-colors">
+                  <CardHeader className="text-center">
+                    <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <CardTitle className="text-lg">Security White Paper</CardTitle>
+                    <CardDescription>
+                      Comprehensive overview of our security architecture and compliance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => {
+                        const link = document.createElement("a")
+                        link.href = "/security-whitepaper.pdf"
+                        link.download = "DaytaTech-Security-Whitepaper.pdf"
+                        link.click()
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-blue-200 hover:border-blue-400 transition-colors">
+                  <CardHeader className="text-center">
+                    <Shield className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <CardTitle className="text-lg">Compliance Guide</CardTitle>
+                    <CardDescription>SOC 2, GDPR, and industry-specific compliance information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => {
+                        const link = document.createElement("a")
+                        link.href = "/compliance-guide.pdf"
+                        link.download = "DaytaTech-Compliance-Guide.pdf"
+                        link.click()
+                      }}
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-blue-200 hover:border-blue-400 transition-colors">
+                  <CardHeader className="text-center">
+                    <Database className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <CardTitle className="text-lg">Data Protection</CardTitle>
+                    <CardDescription>How we handle, encrypt, and protect your sensitive business data</CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => {
+                        const link = document.createElement("a")
+                        link.href = "/data-protection.pdf"
+                        link.download = "DaytaTech-Data-Protection.pdf"
+                        link.click()
+                      }}
+                    >
+                      <Database className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
             <div className="flex justify-center mt-8">
               <Link href="/security">
                 <Button
@@ -802,7 +885,7 @@ export default function Home() {
                   className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                 >
                   <Shield className="h-4 w-4" />
-                  View Security White Paper
+                  View Complete Security Details
                 </Button>
               </Link>
             </div>
@@ -966,7 +1049,15 @@ export default function Home() {
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <Logo />
           <p className="text-center text-sm text-gray-500 md:text-left">© 2025 DaytaTech. All rights reserved.</p>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowContactSupport(true)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Contact Support
+            </Button>
             <Link href="/terms" className="text-sm text-gray-500 hover:underline underline-offset-4">
               Terms
             </Link>
@@ -995,6 +1086,7 @@ export default function Home() {
       )}
 
       <DemoModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
+      {showContactSupport && <ContactSupportModal onClose={() => setShowContactSupport(false)} />}
     </div>
   )
 }
