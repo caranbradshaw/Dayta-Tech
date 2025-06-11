@@ -44,3 +44,12 @@ export function useToast() {
     toasts,
   }
 }
+
+// Export toast as a named export for compatibility
+export const toast = ({ title, description, variant = "default" }: ToastOptions) => {
+  // This is a standalone toast function that can be used without the hook
+  const event = new CustomEvent("show-toast", {
+    detail: { title, description, variant },
+  })
+  window.dispatchEvent(event)
+}
