@@ -6,6 +6,10 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/dashboard" && !request.cookies.get("setup_complete")) {
     try {
       // Run auto-setup
+      const trustedOrigins = ["https://example.com"]; // Define trusted origins
+      if (!trustedOrigins.includes(request.nextUrl.origin)) {
+        throw new Error("Untrusted origin detected");
+      }
       const setupResponse = await fetch(`${request.nextUrl.origin}/api/auto-setup`, {
         method: "POST",
       })
