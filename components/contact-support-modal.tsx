@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { sendEmail } from "@/lib/email-service"
 
 interface ContactSupportModalProps {
   onClose: () => void
@@ -30,7 +31,7 @@ export function ContactSupportModal({ onClose }: ContactSupportModalProps) {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.subject || !formData.category || !formData.message) {
@@ -44,16 +45,98 @@ export function ContactSupportModal({ onClose }: ContactSupportModalProps) {
 
     setIsSubmitting(true)
 
-    // Simulate support ticket submission
-    setTimeout(() => {
-      toast({
-        title: "Support ticket created",
-        description: "We've received your message and will respond within 24 hours.",
+    try {
+      // Format the email content
+      const emailText = `
+New Support Request
+
+SUPPORT DETAILS:
+===============
+Subject: ${formData.subject}
+Category: ${formData.category}
+Priority: ${formData.priority || "Not specified"}
+
+MESSAGE:
+========
+${formData.message}
+
+NEXT STEPS:
+==========
+- Respond within 24 hours based on priority level
+- Escalate if marked as urgent or high priority
+- Follow up to ensure issue is resolved
+
+This support request was submitted through the DaytaTech.ai support form.
+`
+
+      const emailHtml = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
+    New Support Request
+  </h2>
+
+  <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Support Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td style="padding: 5px 0; font-weight: bold;">Subject:</td><td style="padding: 5px 0;">${formData.subject}</td></tr>
+      <tr><td style="padding: 5px 0; font-weight: bold;">Category:</td><td style="padding: 5px 0;">${formData.category}</td></tr>
+      <tr><td style="padding: 5px 0; font-weight: bold;">Priority:</td><td style="padding: 5px 0;">${formData.priority || "Not specified"}</td></tr>
+    </table>
+  </div>
+
+  <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Message</h3>
+    <p style="line-height: 1.6; white-space: pre-wrap;">${formData.message}</p>
+  </div>
+
+  <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0;">Next Steps</h3>
+    <ul style="line-height: 1.6;">
+      <li>Respond within 24 hours based on priority level</li>
+      <li>Escalate if marked as urgent or high priority</li>
+      <li>Follow up to ensure issue is resolved</li>
+    </ul>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+  <p style="color: #6b7280; font-size: 14px; text-align: center;">
+    This support request was submitted through the DaytaTech.ai support form.
+  </p>
+</div>
+`
+
+      // Send the email
+      const result = await sendEmail({
+        to: "caran@daytatech.ai",
+        from: "noreply@daytatech.ai",
+        subject: `Support Request: ${formData.subject}`,
+        text: emailText,
+        html: emailHtml,
       })
 
+      if (result.success) {
+        toast({
+          title: "Support request sent",
+          description: "We've received your message and will respond within 24 hours.",
+        })
+        onClose()
+      } else {
+        toast({
+          title: "Failed to send request",
+          description: result.message || "Please try again or contact us directly.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error sending support request:", error)
+      toast({
+        title: "Error sending request",
+        description: "Please try again or contact us directly at caran@daytatech.ai",
+        variant: "destructive",
+      })
+    } finally {
       setIsSubmitting(false)
-      onClose()
-    }, 1500)
+    }
   }
 
   return (
