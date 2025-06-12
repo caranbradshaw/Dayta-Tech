@@ -1,10 +1,24 @@
 import { createServerClient } from "@/lib/supabase"
 
 export async function debugDatabase() {
-  const supabase = createServerClient()
-
   try {
     console.log("🔍 Debugging database structure...")
+
+    // Check if Supabase is available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.log("❌ Missing Supabase credentials")
+      return {
+        success: false,
+        error: "Missing Supabase credentials",
+        fallbackMode: true,
+      }
+    }
+
+    // Create Supabase client
+    const supabase = createServerClient()
 
     // Check if we can connect
     const { data: connection, error: connectionError } = await supabase
@@ -14,6 +28,16 @@ export async function debugDatabase() {
 
     if (connectionError) {
       console.error("❌ Connection error:", connectionError.message)
+
+      // Check if it's a table not found error
+      if (connectionError.code === "42P01") {
+        return {
+          success: false,
+          error: "Analytics tables not found. Please run setup.",
+          needsSetup: true,
+        }
+      }
+
       return { success: false, error: connectionError.message }
     }
 
@@ -45,9 +69,17 @@ export async function debugDatabase() {
     // Clean up test data
     await supabase.from("analytics_events").delete().eq("event_name", "test_event")
 
-    return { success: true, message: "Database is working correctly" }
-  } catch (error) {
+    return {
+      success: true,
+      message: "Database is working correctly",
+      tables: tables || [],
+    }
+  } catch (error: any) {
     console.error("❌ Debug error:", error)
-    return { success: false, error: error.message }
+    return {
+      success: false,
+      error: error.message,
+      fallbackMode: true,
+    }
   }
 }

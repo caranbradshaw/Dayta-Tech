@@ -127,7 +127,7 @@ export default function AnalyticsSetupPage() {
               <CardTitle>Setup Results</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Sample Events Created</p>
                   <p className="text-2xl font-bold">{setupState.data.sampleDataCount || 0}</p>
@@ -135,6 +135,10 @@ export default function AnalyticsSetupPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Events Retrieved</p>
                   <p className="text-2xl font-bold">{setupState.data.retrievedDataCount || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Setup Duration</p>
+                  <p className="text-2xl font-bold">{setupState.data.setupDuration || "N/A"}</p>
                 </div>
               </div>
             </CardContent>

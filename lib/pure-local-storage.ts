@@ -40,9 +40,14 @@ const STORAGE_KEYS = {
   APP_INITIALIZED: "daytatech_initialized",
 }
 
+// Check if we're running on the client side
+const isClient = typeof window !== "undefined" && typeof localStorage !== "undefined"
+
 // LocalStorage wrapper with error handling
 const safeStorage = {
   get: (key: string) => {
+    if (!isClient) return null
+
     try {
       const value = localStorage.getItem(key)
       return value ? JSON.parse(value) : null
@@ -52,6 +57,8 @@ const safeStorage = {
     }
   },
   set: (key: string, value: any) => {
+    if (!isClient) return false
+
     try {
       localStorage.setItem(key, JSON.stringify(value))
       return true
@@ -61,6 +68,8 @@ const safeStorage = {
     }
   },
   remove: (key: string) => {
+    if (!isClient) return false
+
     try {
       localStorage.removeItem(key)
       return true
@@ -71,8 +80,11 @@ const safeStorage = {
   },
 }
 
-// Initialize the app with sample data
+// Initialize the app with sample data - only on client
 export function initializeApp() {
+  // Skip initialization on server
+  if (!isClient) return false
+
   // Check if already initialized
   if (safeStorage.get(STORAGE_KEYS.APP_INITIALIZED)) {
     return true
@@ -143,19 +155,23 @@ export function initializeApp() {
 // User management
 export const userService = {
   getAll: (): User[] => {
+    if (!isClient) return []
     return safeStorage.get(STORAGE_KEYS.USERS) || []
   },
 
   getByEmail: (email: string): User | null => {
+    if (!isClient) return null
     const users = userService.getAll()
-    return users.find((user) => user.email.toLowerCase() === email.toLowerCase()) || null
+    return users.find((user) => user.email?.toLowerCase() === email?.toLowerCase()) || null
   },
 
   getCurrent: (): User | null => {
+    if (!isClient) return null
     return safeStorage.get(STORAGE_KEYS.CURRENT_USER)
   },
 
   setCurrent: (user: User | null) => {
+    if (!isClient) return
     if (user) {
       safeStorage.set(STORAGE_KEYS.CURRENT_USER, user)
     } else {
@@ -172,13 +188,16 @@ export const userService = {
       createdAt: new Date().toISOString(),
     }
 
-    users.push(newUser)
-    safeStorage.set(STORAGE_KEYS.USERS, users)
+    if (isClient) {
+      users.push(newUser)
+      safeStorage.set(STORAGE_KEYS.USERS, users)
+    }
 
     return newUser
   },
 
   update: (id: string, userData: Partial<User>): User | null => {
+    if (!isClient) return null
     const users = userService.getAll()
     const index = users.findIndex((user) => user.id === id)
 
@@ -194,6 +213,13 @@ export const userService = {
 // Authentication
 export const authService = {
   register: (email: string, password: string, userData: Partial<User>) => {
+    if (!isClient) {
+      return {
+        success: false,
+        message: "Registration not available on server",
+      }
+    }
+
     // Check if email already exists
     const existingUser = userService.getByEmail(email)
     if (existingUser) {
@@ -229,6 +255,13 @@ export const authService = {
   },
 
   login: (email: string, password: string) => {
+    if (!isClient) {
+      return {
+        success: false,
+        message: "Login not available on server",
+      }
+    }
+
     // In a real app, we'd verify the password
     // For demo purposes, just check if the user exists
     const user = userService.getByEmail(email)
@@ -250,6 +283,7 @@ export const authService = {
   },
 
   logout: () => {
+    if (!isClient) return { success: false }
     userService.setCurrent(null)
     return { success: true }
   },
@@ -258,34 +292,39 @@ export const authService = {
 // Analysis management
 export const analysisService = {
   getAll: (): Analysis[] => {
+    if (!isClient) return []
     return safeStorage.get(STORAGE_KEYS.ANALYSES) || []
   },
 
   getById: (id: string): Analysis | null => {
+    if (!isClient) return null
     const analyses = analysisService.getAll()
     return analyses.find((analysis) => analysis.id === id) || null
   },
 
   getByUser: (userId: string): Analysis[] => {
+    if (!isClient) return []
     const analyses = analysisService.getAll()
     return analyses.filter((analysis) => analysis.userId === userId)
   },
 
   create: (analysisData: Omit<Analysis, "id">): Analysis => {
-    const analyses = analysisService.getAll()
-
     const newAnalysis: Analysis = {
       ...analysisData,
       id: `analysis_${Date.now()}`,
     }
 
-    analyses.push(newAnalysis)
-    safeStorage.set(STORAGE_KEYS.ANALYSES, analyses)
+    if (isClient) {
+      const analyses = analysisService.getAll()
+      analyses.push(newAnalysis)
+      safeStorage.set(STORAGE_KEYS.ANALYSES, analyses)
+    }
 
     return newAnalysis
   },
 
   update: (id: string, analysisData: Partial<Analysis>): Analysis | null => {
+    if (!isClient) return null
     const analyses = analysisService.getAll()
     const index = analyses.findIndex((analysis) => analysis.id === id)
 
@@ -335,13 +374,23 @@ export const analysisService = {
   },
 }
 
-// File processing utilities
+// File processing utilities - safe for SSR
 export function processFile(file: File): Promise<{
   fileName: string
   fileSize: number
   fileType: string
   preview: string[]
 }> {
+  // Skip if running on server
+  if (!isClient) {
+    return Promise.resolve({
+      fileName: "",
+      fileSize: 0,
+      fileType: "",
+      preview: [],
+    })
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
 
@@ -386,7 +435,7 @@ export function processFile(file: File): Promise<{
   })
 }
 
-// Generate analysis from processed file data
+// Generate analysis from processed file data - safe for SSR
 export function generateAnalysis(
   fileData: {
     fileName: string
@@ -394,7 +443,7 @@ export function generateAnalysis(
     fileType: string
     preview: string[]
   },
-  userId: string,
+  fileName: string,
 ): Analysis {
   // Generate realistic insights based on file type and content
   const insights = Math.floor(Math.random() * 15) + 8
@@ -458,35 +507,39 @@ export function generateAnalysis(
 
   return {
     id: `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    userId,
-    fileName: fileData.fileName,
-    fileSize: fileData.fileSize,
-    fileType: fileData.fileType,
+    userId: "user_temp", // This will be replaced with actual user ID
+    fileName: fileData.fileName || fileName,
+    fileSize: fileData.fileSize || 0,
+    fileType: fileData.fileType || "text/csv",
     uploadDate: new Date().toISOString(),
     status: "completed",
     insights,
     metrics,
     keyFindings,
     recommendations,
-    summary: `Comprehensive analysis of ${fileData.fileName} reveals ${insights} key insights with ${metrics.dataQuality}% data quality score. The analysis identifies significant opportunities for optimization and predictive modeling.`,
+    summary: `Comprehensive analysis of ${fileData.fileName || fileName} reveals ${insights} key insights with ${metrics.dataQuality}% data quality score. The analysis identifies significant opportunities for optimization and predictive modeling.`,
   }
 }
 
-// Save analysis to localStorage
-export function saveAnalysis(analysis: Analysis): boolean {
+// Save analysis to localStorage - safe for SSR
+export function saveAnalysis(userId: string, analysis: Analysis): string {
+  if (!isClient) return "temp_id"
+
   try {
     const analyses = analysisService.getAll()
-    analyses.push(analysis)
+    const newAnalysis = {
+      ...analysis,
+      userId,
+      id: `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    }
+    analyses.push(newAnalysis)
     safeStorage.set(STORAGE_KEYS.ANALYSES, analyses)
-    return true
+    return newAnalysis.id
   } catch (error) {
     console.error("Error saving analysis:", error)
-    return false
+    return "error_id"
   }
 }
-
-// Initialize the app when this module is imported
-initializeApp()
 
 // Export everything
 export const localStorageService = {
@@ -495,3 +548,6 @@ export const localStorageService = {
   analysis: analysisService,
   initialize: initializeApp,
 }
+
+// Only initialize on client side - remove automatic initialization
+// This prevents server-side execution

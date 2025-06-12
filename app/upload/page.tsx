@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Upload, FileText, Database, TrendingUp, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,17 +12,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useAuth } from "@/components/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { processFile, generateAnalysis, saveAnalysis } from "@/lib/pure-local-storage"
+import { processFile, generateAnalysis, clientStorage } from "@/lib/client-storage"
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -46,7 +51,7 @@ export default function UploadPage() {
   }
 
   const handleUpload = async () => {
-    if (!file || !user) return
+    if (!file || !user || !mounted) return
 
     setIsProcessing(true)
     setProgress(0)
@@ -63,12 +68,13 @@ export default function UploadPage() {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Generate analysis
-      const analysis = await generateAnalysis(processedData, file.name)
+      const analysis = generateAnalysis(processedData, file.name)
+      analysis.userId = user.id // Set the correct user ID
       setProgress(80)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Save analysis
-      const analysisId = await saveAnalysis(user.id, analysis)
+      const analysisId = clientStorage.saveAnalysis(analysis)
       setProgress(100)
 
       toast({
@@ -98,6 +104,22 @@ export default function UploadPage() {
     { name: "Excel", description: "XLSX, XLS files", icon: Database },
     { name: "JSON", description: "JavaScript Object Notation", icon: TrendingUp },
   ]
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

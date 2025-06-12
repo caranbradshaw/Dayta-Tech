@@ -5,7 +5,14 @@ export async function GET() {
   try {
     const result = await debugDatabase()
     return NextResponse.json(result)
-  } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+        fallbackMode: true,
+      },
+      { status: 500 },
+    )
   }
 }

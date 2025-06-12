@@ -1,3 +1,10 @@
+/**
+ * Direct Analytics Setup - Safe for SSR
+ *
+ * This module provides a way to set up analytics tables
+ * in Supabase directly, with proper error handling.
+ */
+
 import { createClient } from "@supabase/supabase-js"
 
 export class DirectAnalyticsSetup {
@@ -5,6 +12,7 @@ export class DirectAnalyticsSetup {
   private logs: string[] = []
 
   constructor() {
+    // Only initialize if we have the required environment variables
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -12,10 +20,17 @@ export class DirectAnalyticsSetup {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Missing Supabase credentials")
+      this.logs.push(`${new Date().toISOString()}: Missing Supabase credentials`)
+      console.log("Missing Supabase credentials")
+      return
     }
 
-    this.supabase = createClient(supabaseUrl, supabaseKey)
+    try {
+      this.supabase = createClient(supabaseUrl, supabaseKey)
+    } catch (error) {
+      this.logs.push(`${new Date().toISOString()}: Error creating Supabase client: ${error}`)
+      console.error("Error creating Supabase client:", error)
+    }
   }
 
   private log(message: string) {
@@ -26,15 +41,34 @@ export class DirectAnalyticsSetup {
   async setup() {
     this.log("🚀 Starting direct analytics setup...")
 
+    // Check if Supabase client is initialized
+    if (!this.supabase) {
+      return {
+        success: false,
+        logs: this.logs,
+        error: "Supabase client not initialized",
+      }
+    }
+
     try {
       // Test basic connection
       this.log("Testing database connection...")
-      const { data: testData, error: testError } = await this.supabase.from("profiles").select("id").limit(1)
 
-      if (testError) {
-        this.log(`❌ Connection test failed: ${testError.message}`)
-      } else {
-        this.log("✅ Database connection successful")
+      try {
+        const { data: testData, error: testError } = await this.supabase.from("profiles").select("id").limit(1)
+
+        if (testError) {
+          this.log(`❌ Connection test failed: ${testError.message}`)
+        } else {
+          this.log("✅ Database connection successful")
+        }
+      } catch (error: any) {
+        this.log(`❌ Connection error: ${error.message}`)
+        return {
+          success: false,
+          logs: this.logs,
+          error: error.message,
+        }
       }
 
       // Try to create analytics table using raw SQL
@@ -54,34 +88,57 @@ export class DirectAnalyticsSetup {
         CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at);
       `
 
+      // Try multiple methods to create the table
+      let tableCreated = false
+
       // Method 1: Try using rpc
-      const { data: rpcData, error: rpcError } = await this.supabase.rpc("exec_sql", {
-        sql: createTableSQL,
-      })
-
-      if (rpcError) {
-        this.log(`❌ RPC method failed: ${rpcError.message}`)
-
-        // Method 2: Try direct REST API call
-        this.log("Trying direct REST API...")
-
-        const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-            apikey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-          },
-          body: JSON.stringify({ sql: createTableSQL }),
+      try {
+        const { data: rpcData, error: rpcError } = await this.supabase.rpc("exec_sql", {
+          sql: createTableSQL,
         })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          this.log(`❌ REST API failed: ${errorText}`)
+        if (rpcError) {
+          this.log(`❌ RPC method failed: ${rpcError.message}`)
+        } else {
+          this.log("✅ Table created via RPC")
+          tableCreated = true
+        }
+      } catch (error: any) {
+        this.log(`❌ RPC error: ${error.message}`)
+      }
 
-          // Method 3: Try to insert into existing table to test if it exists
-          this.log("Testing if table already exists...")
+      // Method 2: Try direct REST API call if RPC failed
+      if (!tableCreated && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        try {
+          this.log("Trying direct REST API...")
 
+          const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+              apikey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+            },
+            body: JSON.stringify({ sql: createTableSQL }),
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            this.log(`❌ REST API failed: ${errorText}`)
+          } else {
+            this.log("✅ Table created via REST API")
+            tableCreated = true
+          }
+        } catch (error: any) {
+          this.log(`❌ REST API error: ${error.message}`)
+        }
+      }
+
+      // Method 3: Try to insert into existing table to test if it exists
+      if (!tableCreated) {
+        this.log("Testing if table already exists...")
+
+        try {
           const { data: insertTest, error: insertError } = await this.supabase.from("analytics_events").insert([
             {
               event_name: "test_event",
@@ -93,12 +150,13 @@ export class DirectAnalyticsSetup {
           if (insertError) {
             if (insertError.code === "42P01") {
               this.log("❌ Table does not exist and cannot be created")
-              return { success: false, logs: this.logs, error: "Cannot create analytics table" }
             } else {
               this.log(`✅ Table exists! Insert test error: ${insertError.message}`)
+              tableCreated = true
             }
           } else {
             this.log("✅ Table exists and working!")
+            tableCreated = true
 
             // Clean up test data
             await this.supabase
@@ -107,11 +165,18 @@ export class DirectAnalyticsSetup {
               .eq("event_name", "test_event")
               .eq("user_id", "test_user")
           }
-        } else {
-          this.log("✅ Table created via REST API")
+        } catch (error: any) {
+          this.log(`❌ Insert test error: ${error.message}`)
         }
-      } else {
-        this.log("✅ Table created via RPC")
+      }
+
+      // If we couldn't create or verify the table, return error
+      if (!tableCreated) {
+        return {
+          success: false,
+          logs: this.logs,
+          error: "Could not create or verify analytics table",
+        }
       }
 
       // Insert sample data
@@ -145,39 +210,57 @@ export class DirectAnalyticsSetup {
         },
       ]
 
-      const { data: insertData, error: insertError } = await this.supabase.from("analytics_events").insert(sampleEvents)
+      try {
+        const { data: insertData, error: insertError } = await this.supabase
+          .from("analytics_events")
+          .insert(sampleEvents)
 
-      if (insertError) {
-        this.log(`❌ Failed to insert sample data: ${insertError.message}`)
-      } else {
-        this.log(`✅ Inserted ${sampleEvents.length} sample events`)
+        if (insertError) {
+          this.log(`❌ Failed to insert sample data: ${insertError.message}`)
+        } else {
+          this.log(`✅ Inserted ${sampleEvents.length} sample events`)
+        }
+      } catch (error: any) {
+        this.log(`❌ Sample data insertion error: ${error.message}`)
       }
 
       // Test querying the data
       this.log("Testing data retrieval...")
 
-      const { data: queryData, error: queryError } = await this.supabase.from("analytics_events").select("*").limit(10)
+      try {
+        const { data: queryData, error: queryError } = await this.supabase
+          .from("analytics_events")
+          .select("*")
+          .limit(10)
 
-      if (queryError) {
-        this.log(`❌ Query failed: ${queryError.message}`)
-      } else {
-        this.log(`✅ Successfully retrieved ${queryData?.length || 0} events`)
+        if (queryError) {
+          this.log(`❌ Query failed: ${queryError.message}`)
+        } else {
+          this.log(`✅ Successfully retrieved ${queryData?.length || 0} events`)
+        }
+
+        this.log("🎉 Analytics setup completed successfully!")
+
+        return {
+          success: true,
+          logs: this.logs,
+          sampleDataCount: sampleEvents.length,
+          retrievedDataCount: queryData?.length || 0,
+        }
+      } catch (error: any) {
+        this.log(`❌ Query error: ${error.message}`)
+        return {
+          success: false,
+          logs: this.logs,
+          error: error.message,
+        }
       }
-
-      this.log("🎉 Analytics setup completed successfully!")
-
-      return {
-        success: true,
-        logs: this.logs,
-        sampleDataCount: sampleEvents.length,
-        retrievedDataCount: queryData?.length || 0,
-      }
-    } catch (error) {
-      this.log(`❌ Setup failed with error: ${error}`)
+    } catch (error: any) {
+      this.log(`❌ Setup failed with error: ${error.message}`)
       return {
         success: false,
         logs: this.logs,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error.message,
       }
     }
   }

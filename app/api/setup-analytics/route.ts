@@ -1,3 +1,9 @@
+/**
+ * Analytics Setup API Route - Safe for SSR
+ *
+ * This API route sets up analytics tables in Supabase.
+ */
+
 import { NextResponse } from "next/server"
 import { DirectAnalyticsSetup } from "@/lib/analytics-setup-direct"
 

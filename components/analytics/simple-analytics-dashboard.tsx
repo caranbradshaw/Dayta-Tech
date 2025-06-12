@@ -2,133 +2,145 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Users, FileText, TrendingUp, Activity } from "lucide-react"
-import { analytics } from "@/lib/simple-analytics"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart, LineChart, PieChart } from "lucide-react"
 
 export function SimpleAnalyticsDashboard() {
-  const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [analyticsData, setAnalyticsData] = useState<any>(null)
 
+  // Simulate loading analytics data
   useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const data = await analytics.getBasicStats()
-        setStats(data)
-      } catch (error) {
-        console.error("Failed to load analytics:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
+    const timer = setTimeout(() => {
+      // Mock data
+      setAnalyticsData({
+        events: 1250,
+        users: 320,
+        activeUsers: 45,
+        topPages: [
+          { page: "/dashboard", views: 320 },
+          { page: "/upload", views: 210 },
+          { page: "/analysis", views: 180 },
+          { page: "/", views: 150 },
+          { page: "/login", views: 120 },
+        ],
+      })
+      setLoading(false)
+    }, 1000)
 
-    loadStats()
+    return () => clearTimeout(timer)
   }, [])
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Loading...</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4">Loading analytics data...</p>
+        </div>
       </div>
-    )
-  }
-
-  if (!stats) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">Unable to load analytics data</p>
-        </CardContent>
-      </Card>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{analyticsData.events.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
-            <p className="text-xs text-muted-foreground">+{stats.userGrowth.last7Days} this week</p>
+            <div className="text-3xl font-bold">{analyticsData.users.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Analyses</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Users Today</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalAnalyses}</div>
-            <p className="text-xs text-muted-foreground">+{stats.analysisGrowth.last7Days} this week</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Daily Average</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.analysisGrowth.dailyAverage}</div>
-            <p className="text-xs text-muted-foreground">analyses per day</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round((stats.userGrowth.last30Days / stats.totalUsers) * 100)}%
-            </div>
-            <p className="text-xs text-muted-foreground">monthly growth</p>
+            <div className="text-3xl font-bold">{analyticsData.activeUsers}</div>
+            <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString()}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {stats.recentActivities.slice(0, 5).map((activity: any, index: number) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="outline">{activity.activity_type?.replace("_", " ") || "Activity"}</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    User {activity.user_id?.slice(0, 8) || "Unknown"}
-                  </span>
+      {/* Simplified Charts (no actual charts, just placeholders) */}
+      <Tabs defaultValue="events">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="events" className="flex items-center gap-2">
+            <BarChart className="h-4 w-4" />
+            Events
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <LineChart className="h-4 w-4" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="pages" className="flex items-center gap-2">
+            <PieChart className="h-4 w-4" />
+            Pages
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="events">
+          <Card>
+            <CardHeader>
+              <CardTitle>Events Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 bg-gray-100 rounded-md flex items-center justify-center">
+                <div className="text-center">
+                  <BarChart className="h-12 w-12 mx-auto text-gray-400" />
+                  <p className="mt-2 text-gray-500">Event data visualization</p>
+                  <p className="text-sm text-gray-400">(Chart visualization requires Chart.js)</p>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(activity.created_at).toLocaleTimeString()}
-                </span>
               </div>
-            ))}
-            {stats.recentActivities.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No recent activity data available</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="users">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Growth</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 bg-gray-100 rounded-md flex items-center justify-center">
+                <div className="text-center">
+                  <LineChart className="h-12 w-12 mx-auto text-gray-400" />
+                  <p className="mt-2 text-gray-500">User growth visualization</p>
+                  <p className="text-sm text-gray-400">(Chart visualization requires Chart.js)</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="pages">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Pages</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {analyticsData.topPages.map((page: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="font-mono text-sm">{page.page}</span>
+                    <span className="font-medium">{page.views.toLocaleString()} views</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
