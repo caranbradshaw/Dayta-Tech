@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Mail, Lock, User, Building } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/auth-context"
 import { Logo } from "@/components/ui/logo"
 
 export default function SignupPage() {
@@ -29,9 +30,12 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const router = useRouter()
   const { toast } = useToast()
+  const { signUp } = useAuth()
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   const validateForm = () => {
@@ -39,7 +43,7 @@ export default function SignupPage() {
       return "Please fill in all required fields"
     }
 
-    if (!formData.email.includes("@")) {
+    if (!formData.email.includes("@") || !formData.email.includes(".")) {
       return "Please enter a valid email address"
     }
 
@@ -66,41 +70,30 @@ export default function SignupPage() {
         return
       }
 
-      // Simulate signup process
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Create user object
-      const user = {
-        id: `user_${Date.now()}`,
+      const result = await signUp({
         name: formData.name,
         email: formData.email,
+        password: formData.password,
         company: formData.company,
         role: formData.role,
         industry: formData.industry,
-        createdAt: new Date().toISOString(),
-        plan: "basic",
-      }
-
-      // Store user session in localStorage for demo
-      localStorage.setItem("user", JSON.stringify(user))
-      localStorage.setItem("isAuthenticated", "true")
-
-      // Check if there's a selected plan from pricing page
-      const selectedPlan = localStorage.getItem("selectedPlan")
-      if (selectedPlan) {
-        localStorage.setItem("userPlan", selectedPlan)
-        localStorage.removeItem("selectedPlan")
-      }
-
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to DaytaTech. Let's get started!",
       })
 
-      // Redirect to dashboard
-      router.push("/dashboard")
+      if (result.success) {
+        toast({
+          title: "Account created successfully!",
+          description: "Welcome to DaytaTech.ai! Redirecting to your dashboard...",
+        })
+
+        // Small delay to show the toast, then redirect
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 1000)
+      } else {
+        setError(result.error || "Signup failed. Please try again.")
+      }
     } catch (error) {
-      setError("Signup failed. Please try again.")
+      setError("An unexpected error occurred. Please try again.")
       console.error("Signup error:", error)
     } finally {
       setLoading(false)

@@ -19,8 +19,8 @@ interface AuthContextType {
   user: User | null
   profile: User | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (userData: Partial<User>) => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUp: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>
   signOut: () => void
   isAuthenticated: boolean
 }
@@ -56,38 +56,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setLoading(true)
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // For demo purposes, accept any email/password
-      const userData: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name: email.split("@")[0],
-        createdAt: new Date().toISOString(),
-        plan: "basic",
+      // Get existing users
+      const existingUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+
+      // Find user with matching email and password
+      const foundUser = existingUsers.find((u: any) => u.email === email && u.password === password)
+
+      if (!foundUser) {
+        return { success: false, error: "Invalid email or password" }
       }
 
-      localStorage.setItem("user", JSON.stringify(userData))
+      // Remove password from user object before storing
+      const { password: _, ...userWithoutPassword } = foundUser
+
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
       localStorage.setItem("isAuthenticated", "true")
-      setUser(userData)
+      setUser(userWithoutPassword)
+
+      return { success: true }
     } catch (error) {
-      throw new Error("Login failed")
+      return { success: false, error: "Login failed. Please try again." }
     } finally {
       setLoading(false)
     }
   }
 
-  const signUp = async (userData: Partial<User>) => {
+  const signUp = async (
+    userData: Partial<User> & { password: string },
+  ): Promise<{ success: boolean; error?: string }> => {
     setLoading(true)
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
-      const newUser: User = {
+      // Get existing users
+      const existingUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+
+      // Check if email already exists
+      const emailExists = existingUsers.some((u: any) => u.email === userData.email)
+
+      if (emailExists) {
+        return {
+          success: false,
+          error: "An account with this email already exists. Please use a different email or try logging in.",
+        }
+      }
+
+      const newUser: User & { password: string } = {
         id: `user_${Date.now()}`,
         email: userData.email || "",
         name: userData.name || "",
@@ -96,13 +117,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         industry: userData.industry,
         plan: userData.plan || "basic",
         createdAt: new Date().toISOString(),
+        password: userData.password,
       }
 
-      localStorage.setItem("user", JSON.stringify(newUser))
+      // Store user in registered users list
+      const updatedUsers = [...existingUsers, newUser]
+      localStorage.setItem("registeredUsers", JSON.stringify(updatedUsers))
+
+      // Remove password from user object before storing as current user
+      const { password: _, ...userWithoutPassword } = newUser
+
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
       localStorage.setItem("isAuthenticated", "true")
-      setUser(newUser)
+      setUser(userWithoutPassword)
+
+      return { success: true }
     } catch (error) {
-      throw new Error("Signup failed")
+      return { success: false, error: "Signup failed. Please try again." }
     } finally {
       setLoading(false)
     }
@@ -111,8 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = () => {
     localStorage.removeItem("user")
     localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("analyses")
-    localStorage.removeItem("currentAnalysis")
     setUser(null)
     router.push("/")
   }
