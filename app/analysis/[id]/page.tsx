@@ -1,100 +1,73 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Download, Share2, BarChart3, TrendingUp, FileText, Lightbulb } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  ArrowLeft,
+  Download,
+  Share2,
+  FileText,
+  BarChart3,
+  CheckCircle,
+  AlertTriangle,
+  Loader2,
+  TrendingUp,
+} from "lucide-react"
+import { toast } from "@/hooks/use-toast"
+import { userService, analysisService, initializeApp, type Analysis } from "@/lib/pure-local-storage"
 
-interface AnalysisResult {
-  id: string
-  fileName: string
-  fileSize: number
-  insights: {
-    totalRows: number
-    columns: string[]
-    keyFindings: string[]
-    recommendations: string[]
-  }
-  summary: string
-  createdAt: string
-}
-
-export default function AnalysisPage({ params }: { params: { id: string } }) {
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function AnalysisPage() {
   const router = useRouter()
+  const params = useParams()
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    // Try to get analysis from localStorage first
-    const currentAnalysis = localStorage.getItem("currentAnalysis")
-    if (currentAnalysis) {
-      setAnalysis(JSON.parse(currentAnalysis))
-      setLoading(false)
+    // Initialize app
+    initializeApp()
+    
+    // Check authentication
+    const currentUser = userService.getCurrent()
+    if (!currentUser) {
+      router.push("/login")
       return
     }
 
-    // Fallback: search in stored analyses
-    const storedAnalyses = JSON.parse(localStorage.getItem("analyses") || "[]")
-    const foundAnalysis = storedAnalyses.find((a: AnalysisResult) => a.id === params.id)
-
-    if (foundAnalysis) {
-      setAnalysis(foundAnalysis)
-    } else {
-      // Generate a mock analysis if not found
-      const mockAnalysis: AnalysisResult = {
-        id: params.id,
-        fileName: "sample-data.csv",
-        fileSize: 2048000,
-        insights: {
-          totalRows: 5420,
-          columns: ["Date", "Revenue", "Customers", "Region", "Product", "Sales_Rep"],
-          keyFindings: [
-            "Revenue increased by 23% compared to last quarter",
-            "Customer acquisition rate improved by 15%",
-            "North region shows highest growth potential",
-            "Product A accounts for 45% of total revenue",
-            "Q3 shows seasonal peak in sales performance",
-            "Customer retention rate is 87% above industry average",
-          ],
-          recommendations: [
-            "Focus marketing efforts on North region for maximum ROI",
-            "Increase inventory for Product A to meet growing demand",
-            "Implement customer retention program to maintain high rates",
-            "Optimize pricing strategy for underperforming products",
-            "Expand sales team in high-performing regions",
-            "Develop seasonal marketing campaigns for Q3 peaks",
-          ],
-        },
-        summary:
-          "Analysis reveals strong performance indicators with significant growth opportunities. The data shows positive trends across key metrics with actionable insights for business optimization.",
-        createdAt: new Date().toISOString(),
+    // Load analysis
+    const analysisId = params.id as string
+    if (analysisId) {
+      const analysisData = analysisService.getById(analysisId)
+      if (analysisData) {
+        setAnalysis(analysisData)
+      } else {
+        setError("Analysis not found")
       }
-      setAnalysis(mockAnalysis)
+    } else {
+      setError("Invalid analysis ID")
     }
 
-    setLoading(false)
-  }, [params.id])
+    setIsLoading(false)
+  }, [params.id, router])
 
   const handleDownload = () => {
     if (!analysis) return
 
     const reportData = {
-      fileName: analysis.fileName,
-      analysisDate: new Date(analysis.createdAt).toLocaleDateString(),
-      summary: analysis.summary,
-      keyFindings: analysis.insights.keyFindings,
-      recommendations: analysis.insights.recommendations,
-      dataOverview: {
-        totalRows: analysis.insights.totalRows,
-        columns: analysis.insights.columns.length,
-        fileSize: `${(analysis.fileSize / 1024).toFixed(1)} KB`,
-      },
+      analysis: analysis,
+      generatedAt: new Date().toISOString(),
     }
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: "application/json" })
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: "application/json",
+    })
+
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
@@ -103,47 +76,56 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+
+    toast({
+      title: "Report Downloaded",
+      description: "Your analysis report has been downloaded successfully.",
+    })
   }
 
-  const handleShare = async () => {
+  const handleShare = () => {
+    if (!analysis) return
+
+    const shareUrl = window.location.href
+
     if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Analysis Report - ${analysis?.fileName}`,
-          text: analysis?.summary,
-          url: window.location.href,
-        })
-      } catch (error) {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(window.location.href)
-      }
+      navigator.share({
+        title: `Analysis Report - ${analysis.fileName}`,
+        text: "Check out this data analysis report from DaytaTech.ai",
+        url: shareUrl,
+      })
     } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href)
+      navigator.clipboard.writeText(shareUrl)
+      toast({
+        title: "Link Copied",
+        description: "Analysis link has been copied to your clipboard.",
+      })
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading analysis...</p>
         </div>
       </div>
     )
   }
 
-  if (!analysis) {
+  if (error || !analysis) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">Analysis Not Found</h1>
-          <p className="text-gray-600 mb-6">The requested analysis could not be found.</p>
-          <Button onClick={() => router.push("/upload")}>Upload New File</Button>
+        <div className="max-w-2xl mx-auto text-center">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error || "Analysis not found"}</AlertDescription>
+          </Alert>
+          <Button onClick={() => router.push("/upload")} className="mt-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Upload
+          </Button>
         </div>
       </div>
     )
@@ -153,75 +135,71 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => router.back()}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={() => router.push("/upload")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">{analysis.fileName}</h1>
-              <p className="text-sm text-gray-600">Analyzed on {new Date(analysis.createdAt).toLocaleDateString()}</p>
+              <h1 className="text-3xl font-bold">{analysis.fileName}</h1>
+              <p className="text-gray-600">Analyzed on {new Date(analysis.uploadDate).toLocaleDateString()}</p>
             </div>
           </div>
+
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleShare}>
+              <Share2 className="mr-2 h-4 w-4" />
               Share
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
+            <Button onClick={handleDownload}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Report
             </Button>
           </div>
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Total Rows</p>
-                  <p className="text-xl font-bold">{analysis.insights.totalRows.toLocaleString()}</p>
-                </div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <FileText className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                <p className="text-2xl font-bold">{analysis.metrics.dataQuality || 95}%</p>
+                <p className="text-sm text-gray-600">Data Quality</p>
+                <Progress value={analysis.metrics.dataQuality || 95} className="mt-2" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Columns</p>
-                  <p className="text-xl font-bold">{analysis.insights.columns.length}</p>
-                </div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <BarChart3 className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                <p className="text-2xl font-bold">{analysis.insights}</p>
+                <p className="text-sm text-gray-600">Insights Found</p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Key Findings</p>
-                  <p className="text-xl font-bold">{analysis.insights.keyFindings.length}</p>
-                </div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-purple-500" />
+                <p className="text-2xl font-bold">{(analysis.metrics.accuracy * 100).toFixed(0)}%</p>
+                <p className="text-sm text-gray-600">Accuracy</p>
+                <Progress value={analysis.metrics.accuracy * 100} className="mt-2" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Recommendations</p>
-                  <p className="text-xl font-bold">{analysis.insights.recommendations.length}</p>
-                </div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2 text-orange-500" />
+                <p className="text-2xl font-bold">{(analysis.metrics.f1Score * 100).toFixed(0)}%</p>
+                <p className="text-sm text-gray-600">F1 Score</p>
+                <Progress value={analysis.metrics.f1Score * 100} className="mt-2" />
               </div>
             </CardContent>
           </Card>
@@ -236,30 +214,93 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
             <TabsTrigger value="data">Data Overview</TabsTrigger>
           </TabsList>
 
+          {/* Summary Tab */}
           <TabsContent value="summary">
             <Card>
               <CardHeader>
-                <CardTitle>Executive Summary</CardTitle>
+                <CardTitle>Analysis Summary</CardTitle>
+                <CardDescription>Overview of the analysis results</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 leading-relaxed text-lg">{analysis.summary}</p>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Executive Summary</h3>
+                    <p className="text-gray-700 leading-relaxed">{analysis.summary}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {Object.entries(analysis.metrics).map(([key, value]) => (
+                        <div key={key} className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500 capitalize">
+                            {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                          </p>
+                          <p className="text-xl font-semibold">
+                            {typeof value === "number" && key !== "dataQuality" && key !== "completeness"
+                              ? `${(value * 100).toFixed(0)}%`
+                              : `${value}${typeof value === "number" ? "%" : ""}`}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">File Information</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-500">File Name</p>
+                        <p className="font-medium truncate">{analysis.fileName}</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-500">File Size</p>
+                        <p className="font-medium">{(analysis.fileSize / (1024 * 1024)).toFixed(2)} MB</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-500">File Type</p>
+                        <p className="font-medium">{analysis.fileType || "Unknown"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Key Findings Tab */}
           <TabsContent value="findings">
             <Card>
               <CardHeader>
                 <CardTitle>Key Findings</CardTitle>
+                <CardDescription>Important discoveries from your data</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analysis.insights.keyFindings.map((finding, index) => (
-                    <div key={index} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
-                      <Badge variant="secondary" className="mt-1">
-                        {index + 1}
-                      </Badge>
-                      <p className="text-gray-700">{finding}</p>
+                  {analysis.keyFindings.map((finding, index) => (
+                    <div key={index} className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
+                          <span className="text-blue-700 font-medium">{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="text-gray-800">{finding}</p>
+                          <div className="mt-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                index % 3 === 0
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : index % 3 === 1
+                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                  : "bg-green-50 text-green-700 border-green-200"
+                              }
+                            >
+                              {index % 3 === 0 ? "High Impact" : index % 3 === 1 ? "Medium Impact" : "Low Impact"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -267,19 +308,37 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
             </Card>
           </TabsContent>
 
+          {/* Recommendations Tab */}
           <TabsContent value="recommendations">
             <Card>
               <CardHeader>
-                <CardTitle>Actionable Recommendations</CardTitle>
+                <CardTitle>Recommendations</CardTitle>
+                <CardDescription>Actionable insights based on your data</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analysis.insights.recommendations.map((recommendation, index) => (
-                    <div key={index} className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
-                      <Badge variant="secondary" className="mt-1">
-                        {index + 1}
-                      </Badge>
-                      <p className="text-gray-700">{recommendation}</p>
+                  {analysis.recommendations.map((recommendation, index) => (
+                    <div key={index} className="bg-green-50 border border-green-100 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-gray-800">{recommendation}</p>
+                          <div className="mt-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                index % 3 === 0
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : index % 3 === 1
+                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                  : "bg-blue-50 text-blue-700 border-blue-200"
+                              }
+                            >
+                              {index % 3 === 0 ? "High Priority" : index % 3 === 1 ? "Medium Priority" : "Low Priority"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -287,63 +346,99 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
             </Card>
           </TabsContent>
 
+          {/* Data Overview Tab */}
           <TabsContent value="data">
-            <div className="grid gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Data Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold mb-3">File Information</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">File Name:</span>
-                          <span>{analysis.fileName}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">File Size:</span>
-                          <span>{(analysis.fileSize / 1024).toFixed(1)} KB</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Total Rows:</span>
-                          <span>{analysis.insights.totalRows.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Columns:</span>
-                          <span>{analysis.insights.columns.length}</span>
-                        </div>
-                      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Overview</CardTitle>
+                <CardDescription>Details about the analyzed data</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">File Details</h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <tbody>
+                          <tr className="border-b">
+                            <td className="px-4 py-2 bg-gray-50 font-medium">File Name</td>
+                            <td className="px-4 py-2">{analysis.fileName}</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="px-4 py-2 bg-gray-50 font-medium">File Size</td>
+                            <td className="px-4 py-2">{(analysis.fileSize / (1024 * 1024)).toFixed(2)} MB</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="px-4 py-2 bg-gray-50 font-medium">File Type</td>
+                            <td className="px-4 py-2">{analysis.fileType || "Unknown"}</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="px-4 py-2 bg-gray-50 font-medium">Upload Date</td>
+                            <td className="px-4 py-2">{new Date(analysis.uploadDate).toLocaleString()}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-2 bg-gray-50 font-medium">Status</td>
+                            <td className="px-4 py-2">
+                              <Badge
+                                variant="outline"
+                                className="bg-green-50 text-green-700 border-green-200"
+                              >
+                                {analysis.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
+                  </div>
 
-                    <div>
-                      <h3 className="font-semibold mb-3">Column Names</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {analysis.insights.columns.map((column, index) => (
-                          <Badge key={index} variant="outline">
-                            {column}
-                          </Badge>
-                        ))}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Data Quality Metrics</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Accuracy</h4>
+                        <Progress value={analysis.metrics.accuracy * 100} className="mb-2" />
+                        <p className="text-sm text-gray-600">
+                          {(analysis.metrics.accuracy * 100).toFixed(1)}% - How accurate the data is compared to real-world values
+                        </p>
+                      </div>
+                      <div className="border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Precision</h4>
+                        <Progress value={analysis.metrics.precision * 100} className="mb-2" />
+                        <p className="text-sm text-gray-600">
+                          {(analysis.metrics.precision * 100).toFixed(1)}% - The proportion of positive identifications that were actually correct
+                        </p>
+                      </div>
+                      <div className="border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">Recall</h4>
+                        <Progress value={analysis.metrics.recall * 100} className="mb-2" />
+                        <p className="text-sm text-gray-600">
+                          {(analysis.metrics.recall * 100).toFixed(1)}% - The proportion of actual positives that were correctly identified
+                        </p>
+                      </div>
+                      <div className="border rounded-lg p-4">
+                        <h4 className="font-medium mb-2">F1 Score</h4>
+                        <Progress value={analysis.metrics.f1Score * 100} className="mb-2" />
+                        <p className="text-sm text-gray-600">
+                          {(analysis.metrics.f1Score * 100).toFixed(1)}% - The harmonic mean of precision and recall
+                        </p>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <AlertDescription className="text-blue-800">
+                      <strong>Demo Mode:</strong> In a production environment, this section would show actual data
+                      previews, column statistics, and more detailed metrics from your uploaded file.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
         {/* Action Buttons */}
-        <div className="mt-8 flex justify-center gap-4">
-          <Button onClick={() => router.push("/upload")} size="lg">
-            Analyze Another File
-          </Button>
-          <Button onClick={() => router.push("/dashboard")} variant="outline" size="lg">
-            Go to Dashboard
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
+        <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
+          <Button variant="outline" onClick={() => router.push("/upload")}>
+            <ArrowLeft className="mr-2 h-4 w-\

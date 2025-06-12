@@ -62,10 +62,10 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Get Expert Data Insights Without the Expert
+                    The Grammarly of Data Analysis
                   </h1>
                   <p className="max-w-[600px] text-gray-500 md:text-xl">
-                    DaytaTech's AI gives you the analytical power of data engineers and data scientists—no technical
+                    DaytaTech.ai's AI gives you the analytical power of data engineers and data scientists—no technical
                     skills required. Transform complex data into clear business insights that drive decisions.
                   </p>
                 </div>
@@ -1048,7 +1048,7 @@ export default function Home() {
       <footer className="w-full border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <Logo />
-          <p className="text-center text-sm text-gray-500 md:text-left">© 2025 DaytaTech. All rights reserved.</p>
+          <p className="text-center text-sm text-gray-500 md:text-left">© 2025 DaytaTech.ai. All rights reserved.</p>
           <div className="flex gap-4 items-center">
             <Button
               variant="ghost"

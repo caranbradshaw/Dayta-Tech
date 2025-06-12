@@ -8,8 +8,26 @@ import { Toaster } from "@/components/ui/toast"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DaytaTech - AI-Powered Data Analytics",
-  description: "Transform your data into actionable insights with AI-powered analytics",
+  title: "DaytaTech.ai - The Grammarly of Data Analysis",
+  description:
+    "Get expert data insights without the expert. DaytaTech's AI gives you the analytical power of data engineers and data scientists—no technical skills required.",
+  keywords: "data analysis, AI analytics, business intelligence, data insights, automated analysis",
+  authors: [{ name: "DaytaTech.ai Team" }],
+  creator: "DaytaTech.ai",
+  publisher: "DaytaTech.ai",
+  openGraph: {
+    title: "DaytaTech.ai - The Grammarly of Data Analysis",
+    description: "Transform complex data into clear business insights with AI-powered analytics",
+    url: "https://daytatech.ai",
+    siteName: "DaytaTech.ai",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DaytaTech.ai - The Grammarly of Data Analysis",
+    description: "Get expert data insights without the expert",
+    creator: "@daytatech",
+  },
     generator: 'v0.dev'
 }
 

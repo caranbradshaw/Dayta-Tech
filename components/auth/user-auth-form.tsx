@@ -1,83 +1,81 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icons } from "@/components/ui/icons"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth-context"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
+import { signIn, signUp } from "@/lib/fallback-auth"
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
-  type?: "login" | "signup"
+  type: "login" | "signup"
 }
 
-export function UserAuthForm({ className, type = "login", ...props }: UserAuthFormProps) {
+export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
-  const [formData, setFormData] = React.useState({
-    email: "",
-    password: "",
-    name: "",
-    company: "",
-    confirmPassword: "",
-  })
+  const [email, setEmail] = React.useState<string>("")
+  const [password, setPassword] = React.useState<string>("")
+  const [name, setName] = React.useState<string>("")
+  const [error, setError] = React.useState<string | null>(null)
   const router = useRouter()
-  const { login, signup } = useAuth()
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
+  const { toast } = useToast()
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault()
     setIsLoading(true)
+    setError(null)
 
     try {
-      if (type === "signup") {
-        if (formData.password !== formData.confirmPassword) {
+      if (type === "login") {
+        // Handle login
+        const { user, error } = await signIn(email, password)
+
+        if (error) {
+          setError(error)
           toast({
-            title: "Error",
-            description: "Passwords do not match",
+            title: "Login failed",
+            description: error,
             variant: "destructive",
           })
-          return
+        } else if (user) {
+          toast({
+            title: "Login successful",
+            description: "Welcome back to DaytaTech.ai!",
+          })
+
+          // Redirect to upload page after successful login
+          router.push("/upload")
         }
+      } else {
+        // Handle signup
+        const { user, error } = await signUp(email, password, name)
 
-        const success = await signup({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          company: formData.company,
-        })
-
-        if (success) {
+        if (error) {
+          setError(error)
+          toast({
+            title: "Signup failed",
+            description: error,
+            variant: "destructive",
+          })
+        } else if (user) {
           toast({
             title: "Account created",
             description: "Welcome to DaytaTech.ai!",
           })
-          router.push("/dashboard")
-        }
-      } else {
-        const success = await login(formData.email, formData.password)
 
-        if (success) {
-          toast({
-            title: "Welcome back",
-            description: "Successfully logged in to DaytaTech.ai",
-          })
-          router.push("/dashboard")
+          // Redirect to upload page after successful signup
+          router.push("/upload")
         }
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("Authentication error:", err)
+      setError("An unexpected error occurred. Please try again.")
       toast({
-        title: "Error",
-        description: type === "signup" ? "Failed to create account" : "Failed to sign in",
+        title: "Authentication error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -90,91 +88,50 @@ export function UserAuthForm({ className, type = "login", ...props }: UserAuthFo
       <form onSubmit={onSubmit}>
         <div className="grid gap-4">
           {type === "signup" && (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="John Doe"
-                  type="text"
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  name="company"
-                  placeholder="Acme Corp"
-                  type="text"
-                  autoCapitalize="words"
-                  autoComplete="organization"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  value={formData.company}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </>
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                disabled={isLoading}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
           )}
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              name="email"
               placeholder="name@example.com"
               type="email"
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect="off"
               disabled={isLoading}
-              value={formData.email}
-              onChange={handleInputChange}
-              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
-              name="password"
-              placeholder="Enter your password"
+              placeholder="••••••••"
               type="password"
-              autoCapitalize="none"
-              autoComplete={type === "signup" ? "new-password" : "current-password"}
+              autoComplete={type === "login" ? "current-password" : "new-password"}
               disabled={isLoading}
-              value={formData.password}
-              onChange={handleInputChange}
-              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          {type === "signup" && (
-            <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                placeholder="Confirm your password"
-                type="password"
-                autoCapitalize="none"
-                autoComplete="new-password"
-                disabled={isLoading}
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          )}
-          <Button disabled={isLoading} className="w-full">
+          {error && <div className="text-sm text-red-500">{error}</div>}
+          <Button disabled={isLoading} type="submit" className="mt-2">
             {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-            {type === "signup" ? "Create Account" : "Sign In"}
+            {type === "login" ? "Sign In" : "Create Account"}
           </Button>
         </div>
       </form>
@@ -187,12 +144,8 @@ export function UserAuthForm({ className, type = "login", ...props }: UserAuthFo
         </div>
       </div>
       <Button variant="outline" type="button" disabled={isLoading}>
-        {isLoading ? (
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Icons.gitHub className="mr-2 h-4 w-4" />
-        )}{" "}
-        GitHub
+        <Icons.google className="mr-2 h-4 w-4" />
+        Google
       </Button>
     </div>
   )

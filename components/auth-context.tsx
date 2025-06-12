@@ -79,6 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("isAuthenticated", "true")
       setUser(userWithoutPassword)
 
+      setTimeout(() => {
+        router.push("/upload")
+      }, 1000)
+
       return { success: true }
     } catch (error) {
       return { success: false, error: "Login failed. Please try again." }
@@ -130,6 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("user", JSON.stringify(userWithoutPassword))
       localStorage.setItem("isAuthenticated", "true")
       setUser(userWithoutPassword)
+
+      setTimeout(() => {
+        router.push("/upload")
+      }, 1000)
 
       return { success: true }
     } catch (error) {

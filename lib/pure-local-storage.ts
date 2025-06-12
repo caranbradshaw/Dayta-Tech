@@ -1,0 +1,347 @@
+/**
+ * Pure localStorage implementation with no database dependencies
+ * This file provides all the data storage functionality needed for the application
+ * without requiring any external database or API connections.
+ */
+
+// Types
+export interface User {
+  id: string
+  email: string
+  name: string
+  company?: string
+  role?: string
+  industry?: string
+  createdAt: string
+}
+
+export interface Analysis {
+  id: string
+  userId: string
+  fileName: string
+  fileSize: number
+  fileType: string
+  uploadDate: string
+  status: "completed" | "processing" | "error"
+  insights: number
+  metrics: {
+    [key: string]: number
+  }
+  keyFindings: string[]
+  recommendations: string[]
+  summary: string
+}
+
+// Storage keys
+const STORAGE_KEYS = {
+  USERS: "daytatech_users",
+  CURRENT_USER: "daytatech_current_user",
+  ANALYSES: "daytatech_analyses",
+  APP_INITIALIZED: "daytatech_initialized",
+}
+
+// LocalStorage wrapper with error handling
+const safeStorage = {
+  get: (key: string) => {
+    try {
+      const value = localStorage.getItem(key)
+      return value ? JSON.parse(value) : null
+    } catch (error) {
+      console.error(`Error getting ${key} from localStorage:`, error)
+      return null
+    }
+  },
+  set: (key: string, value: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+      return true
+    } catch (error) {
+      console.error(`Error setting ${key} in localStorage:`, error)
+      return false
+    }
+  },
+  remove: (key: string) => {
+    try {
+      localStorage.removeItem(key)
+      return true
+    } catch (error) {
+      console.error(`Error removing ${key} from localStorage:`, error)
+      return false
+    }
+  },
+}
+
+// Initialize the app with sample data
+export function initializeApp() {
+  // Check if already initialized
+  if (safeStorage.get(STORAGE_KEYS.APP_INITIALIZED)) {
+    return true
+  }
+
+  try {
+    // Create sample users
+    const sampleUsers: User[] = [
+      {
+        id: "user_1",
+        email: "demo@daytatech.ai",
+        name: "Demo User",
+        company: "DaytaTech",
+        role: "Analyst",
+        industry: "Technology",
+        createdAt: new Date().toISOString(),
+      },
+    ]
+
+    // Create sample analyses
+    const sampleAnalyses: Analysis[] = [
+      {
+        id: "analysis_1",
+        userId: "user_1",
+        fileName: "sample-data.csv",
+        fileSize: 1024 * 1024 * 2, // 2MB
+        fileType: "text/csv",
+        uploadDate: new Date().toISOString(),
+        status: "completed",
+        insights: 12,
+        metrics: {
+          accuracy: 0.92,
+          precision: 0.89,
+          recall: 0.87,
+          f1Score: 0.88,
+          dataQuality: 95,
+          completeness: 98,
+        },
+        keyFindings: [
+          "Customer satisfaction increased by 15% in Q2",
+          "Product usage patterns show peak activity on Tuesdays",
+          "User retention improved after recent UI updates",
+          "New feature adoption rate is 35% higher than expected",
+        ],
+        recommendations: [
+          "Focus marketing efforts on high-engagement time periods",
+          "Implement customer feedback loop for feature improvements",
+          "Optimize onboarding process to increase retention",
+          "Develop targeted campaigns for low-activity segments",
+        ],
+        summary:
+          "Analysis shows positive trends in user engagement and satisfaction with several opportunities for optimization.",
+      },
+    ]
+
+    // Save to localStorage
+    safeStorage.set(STORAGE_KEYS.USERS, sampleUsers)
+    safeStorage.set(STORAGE_KEYS.ANALYSES, sampleAnalyses)
+    safeStorage.set(STORAGE_KEYS.APP_INITIALIZED, true)
+
+    return true
+  } catch (error) {
+    console.error("Error initializing app:", error)
+    return false
+  }
+}
+
+// User management
+export const userService = {
+  getAll: (): User[] => {
+    return safeStorage.get(STORAGE_KEYS.USERS) || []
+  },
+
+  getByEmail: (email: string): User | null => {
+    const users = userService.getAll()
+    return users.find((user) => user.email.toLowerCase() === email.toLowerCase()) || null
+  },
+
+  getCurrent: (): User | null => {
+    return safeStorage.get(STORAGE_KEYS.CURRENT_USER)
+  },
+
+  setCurrent: (user: User | null) => {
+    if (user) {
+      safeStorage.set(STORAGE_KEYS.CURRENT_USER, user)
+    } else {
+      safeStorage.remove(STORAGE_KEYS.CURRENT_USER)
+    }
+  },
+
+  create: (userData: Omit<User, "id" | "createdAt">): User => {
+    const users = userService.getAll()
+
+    const newUser: User = {
+      ...userData,
+      id: `user_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    }
+
+    users.push(newUser)
+    safeStorage.set(STORAGE_KEYS.USERS, users)
+
+    return newUser
+  },
+
+  update: (id: string, userData: Partial<User>): User | null => {
+    const users = userService.getAll()
+    const index = users.findIndex((user) => user.id === id)
+
+    if (index === -1) return null
+
+    users[index] = { ...users[index], ...userData }
+    safeStorage.set(STORAGE_KEYS.USERS, users)
+
+    return users[index]
+  },
+}
+
+// Authentication
+export const authService = {
+  register: (email: string, password: string, userData: Partial<User>) => {
+    // Check if email already exists
+    const existingUser = userService.getByEmail(email)
+    if (existingUser) {
+      return {
+        success: false,
+        message: "An account with this email already exists",
+      }
+    }
+
+    // Create new user
+    try {
+      const newUser = userService.create({
+        email,
+        name: userData.name || "",
+        company: userData.company,
+        role: userData.role,
+        industry: userData.industry,
+      })
+
+      // Set as current user
+      userService.setCurrent(newUser)
+
+      return {
+        success: true,
+        user: newUser,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: "Failed to create account",
+      }
+    }
+  },
+
+  login: (email: string, password: string) => {
+    // In a real app, we'd verify the password
+    // For demo purposes, just check if the user exists
+    const user = userService.getByEmail(email)
+
+    if (!user) {
+      return {
+        success: false,
+        message: "Invalid email or password",
+      }
+    }
+
+    // Set as current user
+    userService.setCurrent(user)
+
+    return {
+      success: true,
+      user,
+    }
+  },
+
+  logout: () => {
+    userService.setCurrent(null)
+    return { success: true }
+  },
+}
+
+// Analysis management
+export const analysisService = {
+  getAll: (): Analysis[] => {
+    return safeStorage.get(STORAGE_KEYS.ANALYSES) || []
+  },
+
+  getById: (id: string): Analysis | null => {
+    const analyses = analysisService.getAll()
+    return analyses.find((analysis) => analysis.id === id) || null
+  },
+
+  getByUser: (userId: string): Analysis[] => {
+    const analyses = analysisService.getAll()
+    return analyses.filter((analysis) => analysis.userId === userId)
+  },
+
+  create: (analysisData: Omit<Analysis, "id">): Analysis => {
+    const analyses = analysisService.getAll()
+
+    const newAnalysis: Analysis = {
+      ...analysisData,
+      id: `analysis_${Date.now()}`,
+    }
+
+    analyses.push(newAnalysis)
+    safeStorage.set(STORAGE_KEYS.ANALYSES, analyses)
+
+    return newAnalysis
+  },
+
+  update: (id: string, analysisData: Partial<Analysis>): Analysis | null => {
+    const analyses = analysisService.getAll()
+    const index = analyses.findIndex((analysis) => analysis.id === id)
+
+    if (index === -1) return null
+
+    analyses[index] = { ...analyses[index], ...analysisData }
+    safeStorage.set(STORAGE_KEYS.ANALYSES, analyses)
+
+    return analyses[index]
+  },
+
+  generateSampleAnalysis: (file: File, userId: string): Analysis => {
+    // Generate realistic sample analysis data
+    return {
+      id: `analysis_${Date.now()}`,
+      userId,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      uploadDate: new Date().toISOString(),
+      status: "completed",
+      insights: Math.floor(Math.random() * 10) + 5,
+      metrics: {
+        accuracy: Number((Math.random() * 0.2 + 0.8).toFixed(2)),
+        precision: Number((Math.random() * 0.2 + 0.75).toFixed(2)),
+        recall: Number((Math.random() * 0.2 + 0.7).toFixed(2)),
+        f1Score: Number((Math.random() * 0.2 + 0.75).toFixed(2)),
+        dataQuality: Math.floor(Math.random() * 15) + 85,
+        completeness: Math.floor(Math.random() * 10) + 90,
+      },
+      keyFindings: [
+        "Data quality is excellent with minimal missing values",
+        "Strong correlation detected between variables X and Y",
+        "Seasonal patterns identified in time series data",
+        "Several outliers detected that may require investigation",
+        "Clustering analysis revealed 3 distinct customer segments",
+      ],
+      recommendations: [
+        "Implement data validation to maintain high quality",
+        "Focus on high-value customer segment for retention",
+        "Develop predictive model based on identified patterns",
+        "Investigate outliers for potential opportunities",
+        "Optimize resource allocation based on usage patterns",
+      ],
+      summary: `Analysis of ${file.name} reveals several key insights and opportunities. The data quality is high with clear patterns that can be leveraged for business optimization.`,
+    }
+  },
+}
+
+// Initialize the app when this module is imported
+initializeApp()
+
+// Export everything
+export const localStorageService = {
+  user: userService,
+  auth: authService,
+  analysis: analysisService,
+  initialize: initializeApp,
+}

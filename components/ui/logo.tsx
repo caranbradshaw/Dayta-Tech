@@ -27,7 +27,7 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
           priority
         />
       </div>
-      {showText && <span className={`font-bold ${textClass}`}>DaytaTech.ai</span>}
+      {showText && <span className={`font-bold ${textClass} text-blue-600`}>DaytaTech.ai</span>}
     </Link>
   )
 }
