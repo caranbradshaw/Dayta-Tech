@@ -32,7 +32,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     // Initialize app
     initializeApp()
-    
+
     // Check authentication
     const currentUser = userService.getCurrent()
     if (!currentUser) {
@@ -292,8 +292,8 @@ export default function AnalysisPage() {
                                 index % 3 === 0
                                   ? "bg-red-50 text-red-700 border-red-200"
                                   : index % 3 === 1
-                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                  : "bg-green-50 text-green-700 border-green-200"
+                                    ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                    : "bg-green-50 text-green-700 border-green-200"
                               }
                             >
                               {index % 3 === 0 ? "High Impact" : index % 3 === 1 ? "Medium Impact" : "Low Impact"}
@@ -330,8 +330,8 @@ export default function AnalysisPage() {
                                 index % 3 === 0
                                   ? "bg-red-50 text-red-700 border-red-200"
                                   : index % 3 === 1
-                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                  : "bg-blue-50 text-blue-700 border-blue-200"
+                                    ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                    : "bg-blue-50 text-blue-700 border-blue-200"
                               }
                             >
                               {index % 3 === 0 ? "High Priority" : index % 3 === 1 ? "Medium Priority" : "Low Priority"}
@@ -379,10 +379,7 @@ export default function AnalysisPage() {
                           <tr>
                             <td className="px-4 py-2 bg-gray-50 font-medium">Status</td>
                             <td className="px-4 py-2">
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 border-green-200"
-                              >
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 {analysis.status}
                               </Badge>
                             </td>
@@ -399,21 +396,24 @@ export default function AnalysisPage() {
                         <h4 className="font-medium mb-2">Accuracy</h4>
                         <Progress value={analysis.metrics.accuracy * 100} className="mb-2" />
                         <p className="text-sm text-gray-600">
-                          {(analysis.metrics.accuracy * 100).toFixed(1)}% - How accurate the data is compared to real-world values
+                          {(analysis.metrics.accuracy * 100).toFixed(1)}% - How accurate the data is compared to
+                          real-world values
                         </p>
                       </div>
                       <div className="border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Precision</h4>
                         <Progress value={analysis.metrics.precision * 100} className="mb-2" />
                         <p className="text-sm text-gray-600">
-                          {(analysis.metrics.precision * 100).toFixed(1)}% - The proportion of positive identifications that were actually correct
+                          {(analysis.metrics.precision * 100).toFixed(1)}% - The proportion of positive identifications
+                          that were actually correct
                         </p>
                       </div>
                       <div className="border rounded-lg p-4">
                         <h4 className="font-medium mb-2">Recall</h4>
                         <Progress value={analysis.metrics.recall * 100} className="mb-2" />
                         <p className="text-sm text-gray-600">
-                          {(analysis.metrics.recall * 100).toFixed(1)}% - The proportion of actual positives that were correctly identified
+                          {(analysis.metrics.recall * 100).toFixed(1)}% - The proportion of actual positives that were
+                          correctly identified
                         </p>
                       </div>
                       <div className="border rounded-lg p-4">
@@ -441,4 +441,21 @@ export default function AnalysisPage() {
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
           <Button variant="outline" onClick={() => router.push("/upload")}>
-            <ArrowLeft className="mr-2 h-4 w-\
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Analyze Another File
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleShare}>
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Results
+            </Button>
+            <Button onClick={handleDownload}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Report
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
