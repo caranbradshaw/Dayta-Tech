@@ -27,7 +27,7 @@ export interface ProFeatures {
   allFileFormats: boolean
   industrySpecificAnalysis: boolean
   historicalLearning: boolean
-  teamCollaboration: boolean
+  teamCollaboration: boolean // REMOVED from trial
   prioritySupport: boolean
   apiAccess: boolean
   customReports: boolean
@@ -55,7 +55,20 @@ export interface EmailRules {
   autoApproveRegions: Region[]
 }
 
-// PRO Trial Features (Full PRO access for 30 days)
+export interface UserAIContext {
+  region: Region
+  industry: string
+  role: UserRole
+  company: string
+  signupDate: string
+  preferences?: {
+    analysisStyle: "executive" | "technical" | "business"
+    reportFormat: "detailed" | "summary" | "visual"
+    industryFocus: boolean
+  }
+}
+
+// PRO Trial Features (Full PRO access for 30 days) - REMOVED team collaboration
 export const proTrialFeatures: ProFeatures = {
   maxUploadsPerMonth: "unlimited",
   maxFileSize: 500, // 500MB
@@ -63,7 +76,7 @@ export const proTrialFeatures: ProFeatures = {
   allFileFormats: true,
   industrySpecificAnalysis: true,
   historicalLearning: true,
-  teamCollaboration: true,
+  teamCollaboration: false, // REMOVED from trial - upgrade required
   prioritySupport: true,
   apiAccess: true,
   customReports: true,
@@ -164,7 +177,7 @@ export function createProTrial(
   name: string,
   email: string,
   industry: string,
-  company = "Not specified",
+  company: string, // Now required
   role: UserRole = "business-analyst",
   region?: Region,
 ): TrialSubscription {
@@ -188,6 +201,64 @@ export function createProTrial(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
+}
+
+export function createUserAIContext(region: Region, industry: string, role: UserRole, company: string): UserAIContext {
+  return {
+    region,
+    industry,
+    role,
+    company,
+    signupDate: new Date().toISOString(),
+    preferences: {
+      analysisStyle: role === "data-scientist" ? "technical" : role === "business-analyst" ? "business" : "executive",
+      reportFormat: "detailed",
+      industryFocus: true,
+    },
+  }
+}
+
+export function getAIContextualPrompt(context: UserAIContext, fileName: string): string {
+  const { region, industry, role, company } = context
+
+  const regionContext =
+    region === "nigeria"
+      ? "Nigerian market context"
+      : region === "america"
+        ? "US market context"
+        : "global market context"
+
+  const rolePrompt =
+    {
+      "data-scientist": "Focus on statistical analysis, machine learning opportunities, and technical insights",
+      "data-engineer": "Emphasize data quality, schema optimization, and technical architecture recommendations",
+      "business-analyst": "Provide business insights, KPI analysis, and operational recommendations",
+      admin: "Focus on high-level strategic insights and executive decision support",
+    }[role] || "Provide comprehensive business analysis"
+
+  return `
+CONTEXTUAL ANALYSIS REQUEST
+===========================
+
+Company: ${company}
+Industry: ${industry}
+Role: ${role.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+Region: ${regionContext}
+File: ${fileName}
+
+ANALYSIS REQUIREMENTS:
+1. ${rolePrompt}
+2. Tailor insights specifically for ${industry} industry
+3. Consider ${regionContext} and regional business practices
+4. Provide recommendations suitable for ${company}
+5. Use language and examples relevant to a ${role.replace("-", " ")}
+
+Please provide analysis that demonstrates deep understanding of:
+- ${industry} industry dynamics and challenges
+- ${region === "nigeria" ? "Nigerian business environment and market conditions" : region === "america" ? "US business environment and market conditions" : "Global business environment"}
+- Role-specific needs and priorities for a ${role.replace("-", " ")}
+- Company-specific insights for ${company}
+`
 }
 
 export function calculateDaysRemaining(trialEndDate: string): number {

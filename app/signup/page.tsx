@@ -112,27 +112,40 @@ export default function SignupPage() {
     }
   }
 
+  const validateForm = () => {
+    const requiredFields = ["name", "email", "password", "confirmPassword", "industry", "company", "role", "region"]
+    const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData].trim())
+
+    if (missingFields.length > 0) {
+      setError(`Please fill in all required fields: ${missingFields.join(", ")}`)
+      return false
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      return false
+    }
+
+    if (passwordStrength === "weak") {
+      setError("Please choose a stronger password")
+      return false
+    }
+
+    if (emailWarnings.some((w) => w.includes("not allowed"))) {
+      setError("Please use a valid email address")
+      return false
+    }
+
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
     setSuccess("")
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      setLoading(false)
-      return
-    }
-
-    if (passwordStrength === "weak") {
-      setError("Please choose a stronger password")
-      setLoading(false)
-      return
-    }
-
-    if (emailWarnings.some((w) => w.includes("not allowed"))) {
-      setError("Please use a valid email address")
+    if (!validateForm()) {
       setLoading(false)
       return
     }
@@ -141,7 +154,17 @@ export default function SignupPage() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          // Add AI context for better analysis
+          aiContext: {
+            region: formData.region,
+            industry: formData.industry,
+            role: formData.role,
+            company: formData.company,
+            signupDate: new Date().toISOString(),
+          },
+        }),
       })
 
       const result = await response.json()
@@ -210,7 +233,9 @@ export default function SignupPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">
+                  Full Name <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="name"
                   type="text"
@@ -222,7 +247,9 @@ export default function SignupPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -242,7 +269,9 @@ export default function SignupPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password">
+                  Password <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -286,7 +315,9 @@ export default function SignupPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                <Label htmlFor="confirmPassword">
+                  Confirm Password <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -299,8 +330,10 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="region">Region *</Label>
-              <Select value={formData.region} onValueChange={(value) => handleInputChange("region", value)}>
+              <Label htmlFor="region">
+                Region <span className="text-red-500">*</span>
+              </Label>
+              <Select value={formData.region} onValueChange={(value) => handleInputChange("region", value)} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select your region" />
                 </SelectTrigger>
@@ -319,8 +352,14 @@ export default function SignupPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="industry">Industry</Label>
-                <Select value={formData.industry} onValueChange={(value) => handleInputChange("industry", value)}>
+                <Label htmlFor="industry">
+                  Industry <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.industry}
+                  onValueChange={(value) => handleInputChange("industry", value)}
+                  required
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select your industry" />
                   </SelectTrigger>
@@ -335,8 +374,10 @@ export default function SignupPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Your Role</Label>
-                <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
+                <Label htmlFor="role">
+                  Your Role <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
@@ -352,13 +393,16 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="company">Company Name</Label>
+              <Label htmlFor="company">
+                Company Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="company"
                 type="text"
                 value={formData.company}
                 onChange={(e) => handleInputChange("company", e.target.value)}
-                placeholder="Your company name (optional)"
+                required
+                placeholder="Your company name"
               />
             </div>
 
@@ -383,13 +427,17 @@ export default function SignupPage() {
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="w-3 h-3 mr-1" />
-                  Team collaboration
+                  Custom reports
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="w-3 h-3 mr-1" />
                   Priority support
                 </div>
               </div>
+              <p className="text-xs text-blue-600 mt-2">
+                ✨ AI will personalize insights based on your {formData.industry || "industry"},{" "}
+                {formData.role || "role"}, and {formData.region || "region"}!
+              </p>
             </div>
 
             <Button
@@ -409,6 +457,7 @@ export default function SignupPage() {
 
             <p className="text-xs text-gray-500 text-center">
               By signing up, you agree to our Terms of Service and Privacy Policy. No credit card required for trial.
+              All fields marked with <span className="text-red-500">*</span> are required.
             </p>
           </form>
         </CardContent>
