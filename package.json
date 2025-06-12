@@ -12,7 +12,7 @@
     "@ai-sdk/anthropic": "^0.0.39",
     "@ai-sdk/openai": "^0.0.66",
     "@anthropic-ai/sdk": "latest",
-    "@hookform/resolvers": "^3.3.4",
+    "@hookform/resolvers": "latest",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",

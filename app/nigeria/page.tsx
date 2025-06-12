@@ -21,100 +21,16 @@ import {
   TrendingUp,
   Zap,
   Users,
-  Download,
   Play,
 } from "lucide-react"
+
+// Import the currency formatter at the top
+import { getPricingComparison } from "@/lib/currency-formatter"
 
 export default function NigeriaPage() {
   const [showContactSales, setShowContactSales] = useState(false)
   const [showContactSupport, setShowContactSupport] = useState(false)
   const router = useRouter()
-
-  const handleWhitePaperDownload = (paperName: string) => {
-    try {
-      // Create a more robust blob with sample content
-      const content = `# ${paperName}
-
-## Executive Summary
-This comprehensive guide provides Nigerian businesses with practical insights and strategies for ${paperName.toLowerCase()}.
-
-## Table of Contents
-1. Introduction to ${paperName}
-2. Nigerian Market Context
-3. Implementation Strategies
-4. Best Practices
-5. ROI Analysis
-6. Case Studies
-7. Next Steps
-
-## Key Benefits for Nigerian Businesses
-- Improved decision-making capabilities
-- Competitive advantage in local markets
-- Compliance with Nigerian regulations
-- Cost-effective implementation
-- Scalable solutions
-
-## Implementation Roadmap
-### Phase 1: Assessment (Weeks 1-2)
-- Current state analysis
-- Requirements gathering
-- Stakeholder alignment
-
-### Phase 2: Planning (Weeks 3-4)
-- Strategy development
-- Resource allocation
-- Timeline creation
-
-### Phase 3: Execution (Weeks 5-12)
-- System implementation
-- Team training
-- Process optimization
-
-### Phase 4: Optimization (Ongoing)
-- Performance monitoring
-- Continuous improvement
-- Scaling strategies
-
-## Nigerian Market Insights
-- Local consumer behavior patterns
-- Regulatory compliance requirements
-- Economic factors and considerations
-- Cultural adaptation strategies
-
-## Contact Information
-For more information or implementation support:
-- Email: caran@daytatech.ai
-- Website: daytatech.ai/nigeria
-- Phone: +234 (0) 123 456 7890
-
-© 2025 DaytaTech Nigeria. All rights reserved.`
-
-      // Create the blob and trigger download
-      const blob = new Blob([content], { type: "text/markdown" })
-      const url = URL.createObjectURL(blob)
-
-      // Create and trigger download link
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${paperName.replace(/\s+/g, "-").toLowerCase()}.md`
-      document.body.appendChild(a)
-      a.click()
-
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-      }, 100)
-
-      // Show success message
-      alert(
-        `Downloading ${paperName}. If the download doesn't start automatically, please check your browser settings.`,
-      )
-    } catch (error) {
-      console.error("Download error:", error)
-      alert("There was an error downloading the white paper. Please try again.")
-    }
-  }
 
   const handleStartTrial = () => {
     router.push("/signup")
@@ -125,7 +41,6 @@ For more information or implementation support:
   }
 
   const handleGetStarted = (plan: string) => {
-    // Store the selected plan and redirect to signup
     if (typeof window !== "undefined") {
       localStorage.setItem("selectedPlan", plan)
     }
@@ -136,14 +51,15 @@ For more information or implementation support:
     router.push("/login")
   }
 
+  // Update the pricing section in the component
+  const nigerianPricing = getPricingComparison("nigeria")
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="/nigeria">
-            <Logo />
-          </Link>
+          <Logo />
           <nav className="hidden md:flex items-center gap-6">
             <Link href="#features" className="text-sm font-medium hover:underline underline-offset-4">
               Features
@@ -156,6 +72,9 @@ For more information or implementation support:
             </Link>
             <Link href="/security" className="text-sm font-medium hover:underline underline-offset-4">
               Security
+            </Link>
+            <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">
+              🇺🇸 Global
             </Link>
           </nav>
           <div className="flex items-center gap-4">
@@ -176,14 +95,14 @@ For more information or implementation support:
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
                 <Badge className="mb-4 bg-green-100 text-green-800 border-green-200">
-                  🇳🇬 Built for Nigerian Businesses
+                  🇳🇬 DaytaTech.ai Nigeria - The Grammarly of Data Analysis
                 </Badge>
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                  The Grammarly of Data Analysis
+                  Transform Your Nigerian Business Data Into Clear Insights
                 </h1>
                 <p className="max-w-[600px] text-gray-500 md:text-xl">
                   DaytaTech.ai's AI gives you the analytical power of data engineers and data scientists—no technical
-                  skills required. Transform complex data into clear business insights that drive decisions.
+                  skills required. Built for Nigerian businesses, priced in Naira.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -249,8 +168,8 @@ For more information or implementation support:
               <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">Features</div>
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Your AI Data Team in a Box</h2>
               <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Get the expertise of data engineers and data scientists without hiring them. Our AI analyzes your data
-                like an expert team would, but delivers insights in plain English that anyone can understand and act on.
+                Get the expertise of data engineers and data scientists without hiring them. DaytaTech.ai analyzes your
+                data like an expert team would, but delivers insights in plain English.
               </p>
             </div>
           </div>
@@ -318,12 +237,12 @@ For more information or implementation support:
             <Card>
               <CardHeader className="flex flex-row items-center gap-2">
                 <Users className="h-6 w-6 text-blue-600" />
-                <CardTitle>Complements Your Team</CardTitle>
+                <CardTitle>Built for Nigerian Business</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  If you have data professionals, DaytaTech accelerates their work. If you don't, it gives you their
-                  expertise. Either way, you get faster, better insights.
+                  Understand local market patterns, support for Naira currency, and insights tailored to Nigerian
+                  business contexts and regulations.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -337,18 +256,21 @@ For more information or implementation support:
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">Pricing</div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Expert Data Analysis for Everyone</h2>
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+                Expert Data Analysis for Nigerian Businesses
+              </h2>
               <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                 Get the power of data engineers and data scientists at a fraction of the cost of hiring them. All prices
                 in Nigerian Naira.
               </p>
             </div>
           </div>
+          {/* Replace the pricing cards section with: */}
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-4 mt-12">
             <Card className="border-2 border-gray-200">
               <CardHeader>
                 <CardTitle>Basic</CardTitle>
-                <div className="text-3xl font-bold">₦58,500</div>
+                <div className="text-3xl font-bold">{nigerianPricing.plans[0].monthly}</div>
                 <CardDescription>Perfect for small businesses</CardDescription>
               </CardHeader>
               <CardContent>
@@ -379,13 +301,14 @@ For more information or implementation support:
                 </Button>
               </CardContent>
             </Card>
+
             <Card className="border-2 border-blue-600 shadow-lg">
               <CardHeader>
                 <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800 mb-2">
                   Most Popular
                 </div>
                 <CardTitle>Pro</CardTitle>
-                <div className="text-3xl font-bold">₦148,500</div>
+                <div className="text-3xl font-bold">{nigerianPricing.plans[1].monthly}</div>
                 <CardDescription>For growing businesses</CardDescription>
               </CardHeader>
               <CardContent>
@@ -416,10 +339,11 @@ For more information or implementation support:
                 </Button>
               </CardContent>
             </Card>
+
             <Card className="border-2 border-gray-200">
               <CardHeader>
                 <CardTitle>Team</CardTitle>
-                <div className="text-3xl font-bold">₦748,500</div>
+                <div className="text-3xl font-bold">{nigerianPricing.plans[2].monthly}</div>
                 <CardDescription>For teams & departments</CardDescription>
               </CardHeader>
               <CardContent>
@@ -446,6 +370,7 @@ For more information or implementation support:
                 </Button>
               </CardContent>
             </Card>
+
             <Card className="border-2 border-gray-200">
               <CardHeader>
                 <CardTitle>Enterprise</CardTitle>
@@ -495,8 +420,8 @@ For more information or implementation support:
               <div className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-sm text-blue-800">Security</div>
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Enterprise-Grade Security</h2>
               <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Your data is protected with the same security standards used by Fortune 500 companies. We implement
-                comprehensive security measures so you can focus on insights, not security concerns.
+                Your data is protected with the same security standards used by Fortune 500 companies. DaytaTech.ai
+                implements comprehensive security measures so you can focus on insights, not security concerns.
               </p>
             </div>
           </div>
@@ -531,69 +456,6 @@ For more information or implementation support:
             </Card>
           </div>
 
-          {/* White Paper Downloads Section */}
-          <div className="mt-16 bg-white rounded-lg border-2 border-blue-200 p-8">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-blue-800 mb-4">Security Documentation</h3>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                Download our comprehensive security documentation to understand how we protect your data and ensure
-                compliance with industry standards.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="border border-blue-200 hover:border-blue-400 transition-colors">
-                <CardHeader className="text-center">
-                  <FileCheck className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <CardTitle className="text-lg">Security White Paper</CardTitle>
-                  <CardDescription>Comprehensive overview of our security architecture and compliance</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleWhitePaperDownload("Security White Paper")}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-blue-200 hover:border-blue-400 transition-colors">
-                <CardHeader className="text-center">
-                  <Shield className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <CardTitle className="text-lg">Compliance Guide</CardTitle>
-                  <CardDescription>SOC 2, GDPR, and industry-specific compliance information</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleWhitePaperDownload("Compliance Guide")}
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-blue-200 hover:border-blue-400 transition-colors">
-                <CardHeader className="text-center">
-                  <Database className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <CardTitle className="text-lg">Data Protection</CardTitle>
-                  <CardDescription>How we handle, encrypt, and protect your sensitive business data</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleWhitePaperDownload("Data Protection")}
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
           <div className="flex justify-center mt-8">
             <Link href="/security">
               <Button
@@ -614,10 +476,12 @@ For more information or implementation support:
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Ready to Get Expert Data Insights?</h2>
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+                Ready to Transform Your Nigerian Business Data?
+              </h2>
               <p className="max-w-[900px] text-green-100 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Join thousands of businesses using DaytaTech to make data-driven decisions without hiring data experts.
-                Start your free trial today—no credit card required.
+                Join thousands of businesses using DaytaTech.ai to make data-driven decisions without hiring data
+                experts. Start your free trial today—no credit card required.
               </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -642,7 +506,9 @@ For more information or implementation support:
       <footer className="w-full border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <Logo />
-          <p className="text-center text-sm text-gray-500 md:text-left">© 2025 DaytaTech.ai. All rights reserved.</p>
+          <p className="text-center text-sm text-gray-500 md:text-left">
+            © 2025 DaytaTech.ai Nigeria. All rights reserved.
+          </p>
           <div className="flex gap-4 items-center">
             <Button
               variant="ghost"

@@ -1,42 +1,52 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
-import { clientStorage, type User } from "@/lib/client-storage"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+
+interface User {
+  id: string
+  email: string
+  name: string
+  role: string
+}
 
 interface AuthContextType {
   user: User | null
-  setUser: (user: User | null) => void
+  login: (user: User) => void
+  logout: () => void
   isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Only run on client side
-    const initAuth = () => {
+    // Check for stored user on mount
+    const storedUser = localStorage.getItem("dayta-user")
+    if (storedUser) {
       try {
-        // Initialize app data
-        clientStorage.initialize()
-
-        // Get current user
-        const currentUser = clientStorage.getCurrentUser()
-        setUser(currentUser)
+        setUser(JSON.parse(storedUser))
       } catch (error) {
-        console.error("Error initializing auth:", error)
-      } finally {
-        setIsLoading(false)
+        console.error("Error parsing stored user:", error)
+        localStorage.removeItem("dayta-user")
       }
     }
-
-    initAuth()
+    setIsLoading(false)
   }, [])
 
-  return <AuthContext.Provider value={{ user, setUser, isLoading }}>{children}</AuthContext.Provider>
+  const login = (userData: User) => {
+    setUser(userData)
+    localStorage.setItem("dayta-user", JSON.stringify(userData))
+  }
+
+  const logout = () => {
+    setUser(null)
+    localStorage.removeItem("dayta-user")
+  }
+
+  return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

@@ -13,12 +13,22 @@ export interface EnvConfig {
 }
 
 export function checkEnvironment(): EnvConfig {
+  // Only check server-side environment variables when running on server
+  if (typeof window !== "undefined") {
+    // Client-side fallback - return demo mode
+    return {
+      hasDatabase: false,
+      hasAI: false,
+      hasStorage: false,
+      hasEmail: false,
+      missingVars: ["Client-side check - use server API"],
+      mode: "demo",
+    }
+  }
+
   const requiredForDatabase = ["POSTGRES_URL", "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_HOST"]
-
   const requiredForAI = ["OPENAI_API_KEY", "CLAUDE_API_KEY", "GROQ_API_KEY"]
-
   const requiredForStorage = ["BLOB_READ_WRITE_TOKEN"]
-
   const requiredForEmail = ["SENDGRID_API_KEY", "FROM_EMAIL"]
 
   const missingVars: string[] = []

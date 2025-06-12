@@ -1,52 +1,121 @@
 "use client"
-import Link from "next/link"
-import { UserAuthForm } from "@/components/auth/user-auth-form"
-import { Logo } from "@/components/ui/logo"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useAuth } from "@/components/auth-context"
+
+const formSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, {
+    message: "Password must be at least 8 characters.",
+  }),
+})
 
 export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { login } = useAuth()
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  })
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true)
+
+    try {
+      // Simulate login (replace with actual auth)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Set user in auth context
+      const user = {
+        id: "1",
+        email: values.email,
+        name: values.email.split("@")[0],
+        role: "user",
+      }
+
+      login(user)
+
+      toast({
+        title: "Welcome back!",
+        description: "Redirecting to upload page...",
+      })
+
+      // Redirect to upload page instead of dashboard
+      setTimeout(() => {
+        router.push("/upload")
+      }, 1000)
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "Invalid credentials.",
+        variant: "destructive",
+      })
+    }
+
+    setIsLoading(false)
+  }
+
   return (
-    <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800" />
-        <div className="relative z-20 flex items-center text-lg font-medium">
-          <Logo size="md" showText={true} />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full p-8 rounded-lg shadow-lg bg-white">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
+          <p className="text-gray-600 mt-2">Sign in to your DaytaTech account</p>
         </div>
-        <div className="relative z-20 mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-lg">
-              "DaytaTech.ai transformed how we understand our data. We went from guessing to knowing exactly what drives
-              our business."
-            </p>
-            <footer className="text-sm">Sofia Davis, CEO of TechCorp</footer>
-          </blockquote>
-        </div>
-      </div>
-      <div className="lg:p-8">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <div className="lg:hidden mb-4">
-              <Logo size="lg" showText={true} />
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome back to DaytaTech.ai</h1>
-            <p className="text-sm text-muted-foreground">Enter your email and password to access your data insights</p>
-          </div>
-          <UserAuthForm type="login" />
-          <p className="px-8 text-center text-sm text-muted-foreground">
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your email" {...field} type="email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your password" {...field} type="password" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button disabled={isLoading} className="w-full" type="submit">
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+        </Form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
             Don't have an account?{" "}
-            <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
+            <button onClick={() => router.push("/signup")} className="text-blue-600 hover:text-blue-500 font-medium">
               Sign up
-            </Link>
-          </p>
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            By continuing, you agree to our{" "}
-            <Link href="/terms" className="underline underline-offset-4 hover:text-primary">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
-              Privacy Policy
-            </Link>
-            .
+            </button>
           </p>
         </div>
       </div>
