@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 export type AccountType = "trial_pro" | "basic" | "pro" | "team" | "enterprise"
 export type UserRole = "data-scientist" | "data-engineer" | "business-analyst" | "admin" | "support-admin"
 export type TrialStatus = "active" | "expired" | "converted" | "none"
@@ -186,8 +187,8 @@ export function createProTrial(
   const trialEndDate = new Date(trialStartDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
   return {
-    id: `trial_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    userId: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `trial_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
+    userId: `user_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
     accountType: "trial_pro",
     trialStatus: "active",
     region: detectedRegion,
