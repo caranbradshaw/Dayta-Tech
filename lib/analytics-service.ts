@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 /**
  * Analytics Service - Safe for SSR
  *
@@ -287,7 +288,8 @@ class AnalyticsService {
 
   // Utility methods - all safe for SSR
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const randomBytes = crypto.randomBytes(16).toString('hex'); // Generate 16 bytes of secure random data
+    return `session_${Date.now()}_${randomBytes}`;
   }
 
   private getDeviceType(): string {
