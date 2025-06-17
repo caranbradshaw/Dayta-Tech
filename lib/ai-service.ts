@@ -1,6 +1,3 @@
-import { analyzeDataWithOpenAI } from "./ai-providers/openai-service"
-import { analyzeDataWithClaude } from "./ai-providers/claude-service"
-import { analyzeDataWithGroq } from "./ai-providers/groq-service"
 import { processUploadedFile } from "./data-processor"
 import type { ProcessedData } from "./data-processor"
 
@@ -49,31 +46,42 @@ export async function analyzeUploadedFile(
   const startTime = Date.now()
 
   try {
+    console.log("Starting AI analysis for file:", file.name)
+    console.log("User context:", userContext)
+
     // Step 1: Process and analyze the file structure
     console.log("Processing uploaded file...")
     const processedData = await processUploadedFile(file)
+    console.log("File processed successfully, rows:", processedData.stats.rowCount)
 
     // Step 2: Get AI analysis using available providers
     const providers = getAIProviders(userContext.planType)
     let aiResult = null
     let usedProvider = "fallback"
 
+    console.log("Attempting AI analysis with providers:", providers)
+
     for (const provider of providers) {
       try {
         console.log(`Attempting analysis with ${provider}...`)
 
         if (provider === "claude" && process.env.CLAUDE_API_KEY) {
+          console.log("Using Claude API...")
           aiResult = await analyzeDataWithClaude(processedData, file.name, userContext)
           usedProvider = "claude"
           break
         } else if (provider === "openai" && process.env.OPENAI_API_KEY) {
+          console.log("Using OpenAI API...")
           aiResult = await analyzeDataWithOpenAI(processedData, file.name, userContext)
           usedProvider = "openai"
           break
         } else if (provider === "groq" && process.env.GROQ_API_KEY) {
+          console.log("Using Groq API...")
           aiResult = await analyzeDataWithGroq(processedData, file.name, userContext)
           usedProvider = "groq"
           break
+        } else {
+          console.log(`${provider} API key not available, skipping...`)
         }
       } catch (error) {
         console.warn(`${provider} analysis failed:`, error)
@@ -83,12 +91,13 @@ export async function analyzeUploadedFile(
 
     // Step 3: Fallback to intelligent mock analysis if all AI providers fail
     if (!aiResult) {
-      console.log("Using intelligent fallback analysis...")
+      console.log("All AI providers failed, using intelligent fallback analysis...")
       aiResult = generateIntelligentFallback(processedData, file.name, userContext)
       usedProvider = "fallback"
     }
 
     const processingTime = Date.now() - startTime
+    console.log(`Analysis completed in ${processingTime}ms using ${usedProvider}`)
 
     return {
       summary: aiResult.summary,
@@ -100,7 +109,141 @@ export async function analyzeUploadedFile(
     }
   } catch (error) {
     console.error("File analysis error:", error)
-    throw new Error(`Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+
+    // Return fallback analysis even on error
+    try {
+      console.log("Attempting fallback analysis due to error...")
+      const fallbackData = await processUploadedFile(file)
+      const fallbackResult = generateIntelligentFallback(fallbackData, file.name, userContext)
+
+      return {
+        summary: fallbackResult.summary,
+        insights: enhanceInsights(fallbackResult.insights, fallbackData),
+        recommendations: enhanceRecommendations(fallbackResult.recommendations, userContext),
+        dataQuality: fallbackData.insights.dataQuality,
+        processingTime: Date.now() - startTime,
+        aiProvider: "fallback-error",
+      }
+    } catch (fallbackError) {
+      console.error("Fallback analysis also failed:", fallbackError)
+      throw new Error(`Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+    }
+  }
+}
+
+async function analyzeDataWithClaude(
+  processedData: ProcessedData,
+  fileName: string,
+  userContext: any,
+): Promise<{ summary: string; insights: any[]; recommendations: Recommendation[] }> {
+  try {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk")
+    const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY })
+
+    const prompt = `Analyze this ${userContext.industry || "business"} dataset for ${userContext.role || "business analyst"} perspective:
+
+File: ${fileName}
+Rows: ${processedData.stats.rowCount}
+Columns: ${processedData.stats.columnCount}
+Data Quality: ${processedData.insights.dataQuality}%
+
+Sample Data: ${JSON.stringify(processedData.sample.slice(0, 3), null, 2)}
+
+Provide JSON response with:
+{
+  "summary": "Executive summary of findings",
+  "insights": [{"type": "trend", "title": "Insight title", "content": "Detailed insight", "confidence_score": 0.9}],
+  "recommendations": [{"title": "Recommendation", "description": "Details", "impact": "High", "effort": "Medium", "category": "optimization"}]
+}`
+
+    const message = await anthropic.messages.create({
+      model: "claude-3-sonnet-20240229",
+      max_tokens: 2000,
+      messages: [{ role: "user", content: prompt }],
+    })
+
+    const content = message.content[0].type === "text" ? message.content[0].text : ""
+    return JSON.parse(content)
+  } catch (error) {
+    console.error("Claude analysis error:", error)
+    throw error
+  }
+}
+
+async function analyzeDataWithOpenAI(
+  processedData: ProcessedData,
+  fileName: string,
+  userContext: any,
+): Promise<{ summary: string; insights: any[]; recommendations: Recommendation[] }> {
+  try {
+    const { default: OpenAI } = await import("openai")
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert ${userContext.industry || "business"} analyst. Analyze data and provide JSON responses only.`,
+        },
+        {
+          role: "user",
+          content: `Analyze this dataset:
+File: ${fileName}
+Rows: ${processedData.stats.rowCount}
+Columns: ${processedData.stats.columnCount}
+Sample: ${JSON.stringify(processedData.sample.slice(0, 3), null, 2)}
+
+Return JSON with summary, insights array, and recommendations array.`,
+        },
+      ],
+      max_tokens: 2000,
+      temperature: 0.3,
+    })
+
+    const content = completion.choices[0]?.message?.content || ""
+    return JSON.parse(content)
+  } catch (error) {
+    console.error("OpenAI analysis error:", error)
+    throw error
+  }
+}
+
+async function analyzeDataWithGroq(
+  processedData: ProcessedData,
+  fileName: string,
+  userContext: any,
+): Promise<{ summary: string; insights: any[]; recommendations: Recommendation[] }> {
+  try {
+    const { default: Groq } = await import("groq-sdk")
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert data analyst. Provide JSON responses only.`,
+        },
+        {
+          role: "user",
+          content: `Analyze this ${userContext.industry || "business"} dataset:
+File: ${fileName}
+Rows: ${processedData.stats.rowCount}
+Sample: ${JSON.stringify(processedData.sample.slice(0, 2), null, 2)}
+
+Return JSON with summary, insights, recommendations.`,
+        },
+      ],
+      model: "llama3-8b-8192",
+      max_tokens: 1500,
+      temperature: 0.3,
+    })
+
+    const content = completion.choices[0]?.message?.content || ""
+    return JSON.parse(content)
+  } catch (error) {
+    console.error("Groq analysis error:", error)
+    throw error
   }
 }
 
@@ -112,7 +255,7 @@ function generateIntelligentFallback(
   const { stats, insights } = processedData
 
   // Generate intelligent summary based on data characteristics
-  let summary = `Analysis of ${fileName} reveals a dataset with ${stats.rowCount.toLocaleString()} records and ${stats.columnCount} variables. `
+  let summary = `Analysis of ${fileName} reveals a comprehensive dataset with ${stats.rowCount.toLocaleString()} records and ${stats.columnCount} variables. `
 
   if (insights.completeness > 90) {
     summary += "The data shows excellent quality with minimal missing values, making it highly suitable for analysis. "

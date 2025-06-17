@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("AI Analysis API called")
+
     const formData = await request.formData()
     const file = formData.get("file") as File
     const userId = formData.get("userId") as string
@@ -12,14 +14,25 @@ export async function POST(request: NextRequest) {
     const role = formData.get("role") as string
     const planType = formData.get("planType") as string
 
+    console.log("Analysis parameters:", {
+      fileName: file?.name,
+      fileSize: file?.size,
+      userId,
+      analysisId,
+      industry,
+      role,
+      planType,
+    })
+
     if (!file || !userId || !analysisId) {
+      console.error("Missing required parameters")
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
 
     console.log(`Starting AI analysis for user ${userId}, analysis ${analysisId}`)
 
     // Update status to processing
-    await supabase
+    const { error: statusError } = await supabase
       .from("analyses")
       .update({
         status: "processing",
@@ -28,12 +41,24 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", analysisId)
 
+    if (statusError) {
+      console.error("Failed to update status:", statusError)
+    }
+
     // Analyze the file with AI
+    console.log("Calling analyzeUploadedFile...")
     const analysisResult = await analyzeUploadedFile(file, {
       industry: industry || "general",
       role: role || "business_analyst",
       planType: planType || "basic",
       userId,
+    })
+
+    console.log("AI analysis completed:", {
+      summary: analysisResult.summary.substring(0, 100) + "...",
+      insightsCount: analysisResult.insights.length,
+      recommendationsCount: analysisResult.recommendations.length,
+      aiProvider: analysisResult.aiProvider,
     })
 
     // Update the analysis record in database with results
@@ -67,29 +92,32 @@ export async function POST(request: NextRequest) {
       .eq("id", analysisId)
 
     if (updateError) {
+      console.error("Failed to update analysis:", updateError)
       throw new Error(`Failed to update analysis: ${updateError.message}`)
     }
 
     // Create individual insight records for better querying
-    const insightRecords = analysisResult.insights.map((insight) => ({
-      analysis_id: analysisId,
-      project_id: analysisId,
-      type: insight.type,
-      title: insight.title,
-      content: insight.content,
-      confidence_score: insight.confidence_score,
-      metadata: insight.metadata || {},
-      ai_model: insight.ai_model || analysisResult.aiProvider,
-      processing_time_ms: insight.processing_time_ms || analysisResult.processingTime,
-      created_at: new Date().toISOString(),
-    }))
+    if (analysisResult.insights.length > 0) {
+      const insightRecords = analysisResult.insights.map((insight) => ({
+        analysis_id: analysisId,
+        project_id: analysisId,
+        type: insight.type || "general",
+        title: insight.title || "Analysis Insight",
+        content: insight.content || "No content available",
+        confidence_score: insight.confidence_score || 0.8,
+        metadata: insight.metadata || {},
+        ai_model: insight.ai_model || analysisResult.aiProvider,
+        processing_time_ms: insight.processing_time_ms || analysisResult.processingTime,
+        created_at: new Date().toISOString(),
+      }))
 
-    if (insightRecords.length > 0) {
       const { error: insightsError } = await supabase.from("insights").insert(insightRecords)
 
       if (insightsError) {
         console.error("Failed to insert insights:", insightsError)
         // Don't throw here as the main analysis is complete
+      } else {
+        console.log("Insights inserted successfully:", insightRecords.length)
       }
     }
 
@@ -153,30 +181,29 @@ export async function POST(request: NextRequest) {
     console.error("AI analysis error:", error)
 
     // Update analysis record with error status
-    if (request.formData) {
-      try {
-        const formData = await request.formData()
-        const analysisId = formData.get("analysisId") as string
-        if (analysisId) {
-          await supabase
-            .from("analyses")
-            .update({
-              status: "failed",
-              error_message: error instanceof Error ? error.message : "Analysis failed",
-              processing_completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", analysisId)
-        }
-      } catch (updateError) {
-        console.error("Failed to update error status:", updateError)
+    try {
+      const formData = await request.formData()
+      const analysisId = formData.get("analysisId") as string
+      if (analysisId) {
+        await supabase
+          .from("analyses")
+          .update({
+            status: "failed",
+            error_message: error instanceof Error ? error.message : "Analysis failed",
+            processing_completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", analysisId)
       }
+    } catch (updateError) {
+      console.error("Failed to update error status:", updateError)
     }
 
     return NextResponse.json(
       {
         error: "Analysis failed",
         details: error instanceof Error ? error.message : "Unknown error",
+        message: "The analysis could not be completed. Please try again or contact support.",
       },
       { status: 500 },
     )
