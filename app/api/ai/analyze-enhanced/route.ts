@@ -10,12 +10,24 @@ export async function POST(request: NextRequest) {
     const userId = formData.get("userId") as string
     const analysisId = formData.get("analysisId") as string
     const analysisRole = (formData.get("analysisRole") as AnalysisRole) || "business_analyst"
+    const industry = formData.get("industry") as string
+    const planType = formData.get("planType") as string
 
     if (!file || !userId || !analysisId) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
 
-    console.log(`Starting enhanced analysis for user ${userId}, analysis ${analysisId}, role ${analysisRole}`)
+    console.log(`Starting enhanced AI analysis for user ${userId}, analysis ${analysisId}, role ${analysisRole}`)
+
+    // Update status to processing
+    await supabase
+      .from("analyses")
+      .update({
+        status: "processing",
+        processing_started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", analysisId)
 
     // Perform enhanced AI analysis with specified role
     const analysisResult = await analyzeUploadedFileEnhanced(file, userId, analysisId, analysisRole)
@@ -49,11 +61,16 @@ export async function POST(request: NextRequest) {
           analysis_role: analysisRole,
         },
         processing_completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         metadata: {
           analysis_role: analysisRole,
+          industry,
+          plan_type: planType,
           rows_analyzed: analysisResult.processingMetrics.totalRowsAnalyzed,
           columns_analyzed: analysisResult.processingMetrics.totalColumnsAnalyzed,
           processing_time_ms: analysisResult.processingMetrics.processingTimeMs,
+          file_size: file.size,
+          file_type: file.type,
         },
       })
       .eq("id", analysisId)
@@ -80,6 +97,7 @@ export async function POST(request: NextRequest) {
         },
         ai_model: `Enhanced ${analysisResult.processingMetrics.aiProvider}`,
         processing_time_ms: analysisResult.processingMetrics.processingTimeMs,
+        created_at: new Date().toISOString(),
       })),
       ...analysisResult.industrySpecificInsights.map((insight) => ({
         analysis_id: analysisId,
@@ -96,6 +114,7 @@ export async function POST(request: NextRequest) {
         },
         ai_model: `Enhanced ${analysisResult.processingMetrics.aiProvider}`,
         processing_time_ms: analysisResult.processingMetrics.processingTimeMs,
+        created_at: new Date().toISOString(),
       })),
     ]
 
@@ -107,22 +126,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // **NEW: Create a saved report after successful analysis**
+    // Create a saved report after successful analysis
     try {
-      const { data: analysis } = await supabase
-        .from("analyses")
-        .select("file_name, project_id")
-        .eq("id", analysisId)
-        .single()
-
-      const reportTitle = `${analysisRole.replace("_", " ").toUpperCase()} Analysis: ${analysis?.file_name || "Data Analysis"}`
+      const reportTitle = `${analysisRole.replace("_", " ").toUpperCase()} Analysis: ${file.name}`
 
       const { error: reportError } = await supabase.from("reports").insert({
         user_id: userId,
         analysis_id: analysisId,
-        project_id: analysis?.project_id,
         title: reportTitle,
-        description: `Comprehensive ${analysisRole.replace("_", " ")} analysis report generated from ${analysis?.file_name || "uploaded data"}`,
+        description: `Comprehensive ${analysisRole.replace("_", " ")} analysis report generated from ${file.name}`,
         report_type: "analysis_report",
         content: {
           executive_summary: analysisResult.executiveSummary,
@@ -139,21 +151,23 @@ export async function POST(request: NextRequest) {
         executive_summary: analysisResult.executiveSummary,
         insights: analysisResult.detailedInsights,
         recommendations: analysisResult.roleBasedRecommendations,
-        file_name: analysis?.file_name,
+        file_name: file.name,
         analysis_role: analysisRole,
+        industry: industry,
         status: "generated",
+        created_at: new Date().toISOString(),
       })
 
       if (reportError) {
         console.error("Failed to create report:", reportError)
-        // Don't fail the whole request if report creation fails
       } else {
-        console.log("Report created successfully for analysis:", analysisId)
+        console.log("Enhanced report created successfully for analysis:", analysisId)
       }
     } catch (reportCreationError) {
-      console.error("Error creating report:", reportCreationError)
-      // Continue with the response even if report creation fails
+      console.error("Error creating enhanced report:", reportCreationError)
     }
+
+    console.log(`Enhanced AI analysis completed successfully for analysis ${analysisId}`)
 
     return NextResponse.json({
       success: true,
@@ -169,21 +183,30 @@ export async function POST(request: NextRequest) {
       processingMetrics: analysisResult.processingMetrics,
       analysisType: "enhanced_professional",
       analysisRole,
+      message: "Enhanced analysis completed successfully",
     })
   } catch (error) {
     console.error("Enhanced AI analysis error:", error)
 
     // Update analysis record with error status
-    const analysisId = (await request.formData()).get("analysisId") as string
-    if (analysisId) {
-      await supabase
-        .from("analyses")
-        .update({
-          status: "failed",
-          error_message: error instanceof Error ? error.message : "Enhanced analysis failed",
-          processing_completed_at: new Date().toISOString(),
-        })
-        .eq("id", analysisId)
+    if (request.formData) {
+      try {
+        const formData = await request.formData()
+        const analysisId = formData.get("analysisId") as string
+        if (analysisId) {
+          await supabase
+            .from("analyses")
+            .update({
+              status: "failed",
+              error_message: error instanceof Error ? error.message : "Enhanced analysis failed",
+              processing_completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", analysisId)
+        }
+      } catch (updateError) {
+        console.error("Failed to update error status:", updateError)
+      }
     }
 
     return NextResponse.json(

@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth-context"
 import { FileUploader } from "@/components/file-uploader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, BarChart3, FileText, TrendingUp } from "lucide-react"
+import { Upload, BarChart3, FileText, TrendingUp } from 'lucide-react'
 import { clientStorage } from "@/lib/client-storage"
 
 export default function DashboardPage() {
@@ -19,11 +19,24 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true)
     if (user) {
-      // Load user's recent analyses
-      const analyses = clientStorage.getAnalysesByUser(user.id)
-      setRecentAnalyses(analyses.slice(0, 3)) // Show last 3
+      fetchRecentAnalyses()
     }
   }, [user])
+
+  const fetchRecentAnalyses = async () => {
+    try {
+      const response = await fetch(`/api/analyses/list?userId=${user?.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setRecentAnalyses(data.analyses.slice(0, 3)) // Show last 3
+      }
+    } catch (error) {
+      console.error("Error fetching analyses:", error)
+      // Fallback to client storage if database fails
+      const analyses = clientStorage.getAnalysesByUser(user.id)
+      setRecentAnalyses(analyses.slice(0, 3))
+    }
+  }
 
   if (!mounted) {
     return (
@@ -68,8 +81,7 @@ export default function DashboardPage() {
                 console.log(`Upload complete: ${fileName}, Analysis ID: ${analysisId}`)
                 // Refresh recent analyses
                 if (user) {
-                  const analyses = clientStorage.getAnalysesByUser(user.id)
-                  setRecentAnalyses(analyses.slice(0, 3))
+                  fetchRecentAnalyses()
                 }
               }}
               onUploadError={async (fileName, error) => {
@@ -138,14 +150,26 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-3">
                         <FileText className="h-8 w-8 text-blue-600" />
                         <div>
-                          <p className="font-medium">{analysis.fileName}</p>
+                          <p className="font-medium">{analysis.file_name}</p>
                           <p className="text-sm text-gray-500">
-                            {new Date(analysis.uploadDate).toLocaleDateString()} • {analysis.insights} insights
+                            {new Date(analysis.created_at).toLocaleDateString()} •
+                            <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                              analysis.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              analysis.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {analysis.status.toUpperCase()}
+                            </span>
                           </p>
                         </div>
                       </div>
-                      <Button variant="outline" onClick={() => router.push(`/analysis/${analysis.id}`)}>
-                        View Results
+                      <Button 
+                        variant="outline" 
+                        onClick={() => router.push(`/analysis/${analysis.id}`)}
+                        disabled={analysis.status !== 'completed'}
+                      >
+                        {analysis.status === 'completed' ? 'View Results' : 
+                         analysis.status === 'processing' ? 'Processing...' : 'Failed'}
                       </Button>
                     </div>
                   ))}

@@ -16,15 +16,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
 
+    console.log(`Starting AI analysis for user ${userId}, analysis ${analysisId}`)
+
+    // Update status to processing
+    await supabase
+      .from("analyses")
+      .update({
+        status: "processing",
+        processing_started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", analysisId)
+
     // Analyze the file with AI
     const analysisResult = await analyzeUploadedFile(file, {
-      industry,
-      role,
-      planType,
+      industry: industry || "general",
+      role: role || "business_analyst",
+      planType: planType || "basic",
       userId,
     })
 
-    // Update the analysis record in database
+    // Update the analysis record in database with results
     const { error: updateError } = await supabase
       .from("analyses")
       .update({
@@ -35,6 +47,7 @@ export async function POST(request: NextRequest) {
           data_quality: analysisResult.dataQuality,
           processing_time_ms: analysisResult.processingTime,
           ai_provider: analysisResult.aiProvider,
+          analysis_type: "standard",
         },
         recommendations: {
           recommendations: analysisResult.recommendations,
@@ -42,6 +55,14 @@ export async function POST(request: NextRequest) {
           generated_at: new Date().toISOString(),
         },
         processing_completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        metadata: {
+          industry,
+          role,
+          plan_type: planType,
+          file_size: file.size,
+          file_type: file.type,
+        },
       })
       .eq("id", analysisId)
 
@@ -49,17 +70,18 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to update analysis: ${updateError.message}`)
     }
 
-    // Create individual insight records
+    // Create individual insight records for better querying
     const insightRecords = analysisResult.insights.map((insight) => ({
       analysis_id: analysisId,
-      project_id: analysisId, // Using analysis ID as project ID for simplicity
+      project_id: analysisId,
       type: insight.type,
       title: insight.title,
       content: insight.content,
       confidence_score: insight.confidence_score,
       metadata: insight.metadata || {},
-      ai_model: insight.ai_model,
-      processing_time_ms: insight.processing_time_ms,
+      ai_model: insight.ai_model || analysisResult.aiProvider,
+      processing_time_ms: insight.processing_time_ms || analysisResult.processingTime,
+      created_at: new Date().toISOString(),
     }))
 
     if (insightRecords.length > 0) {
@@ -71,22 +93,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // **NEW: Create a saved report after successful analysis**
+    // Create a saved report after successful analysis
     try {
-      const { data: analysis } = await supabase
-        .from("analyses")
-        .select("file_name, project_id")
-        .eq("id", analysisId)
-        .single()
-
-      const reportTitle = `${role?.toUpperCase() || "BUSINESS"} Analysis: ${analysis?.file_name || "Data Analysis"}`
+      const reportTitle = `${role?.toUpperCase() || "BUSINESS"} Analysis: ${file.name}`
 
       const { error: reportError } = await supabase.from("reports").insert({
         user_id: userId,
         analysis_id: analysisId,
-        project_id: analysis?.project_id,
         title: reportTitle,
-        description: `Analysis report generated from ${analysis?.file_name || "uploaded data"}`,
+        description: `AI-powered analysis report generated from ${file.name}`,
         report_type: "analysis_report",
         content: {
           summary: analysisResult.summary,
@@ -105,22 +120,23 @@ export async function POST(request: NextRequest) {
           effort: rec.effort,
           category: rec.category,
         })),
-        file_name: analysis?.file_name,
+        file_name: file.name,
         analysis_role: role,
         industry: industry,
         status: "generated",
+        created_at: new Date().toISOString(),
       })
 
       if (reportError) {
         console.error("Failed to create report:", reportError)
-        // Don't fail the whole request if report creation fails
       } else {
         console.log("Report created successfully for analysis:", analysisId)
       }
     } catch (reportCreationError) {
       console.error("Error creating report:", reportCreationError)
-      // Continue with the response even if report creation fails
     }
+
+    console.log(`AI analysis completed successfully for analysis ${analysisId}`)
 
     return NextResponse.json({
       success: true,
@@ -131,21 +147,30 @@ export async function POST(request: NextRequest) {
       dataQuality: analysisResult.dataQuality,
       processingTime: analysisResult.processingTime,
       aiProvider: analysisResult.aiProvider,
+      message: "Analysis completed successfully",
     })
   } catch (error) {
     console.error("AI analysis error:", error)
 
-    // Try to update the analysis record with error status
-    const analysisId = (await request.formData()).get("analysisId") as string
-    if (analysisId) {
-      await supabase
-        .from("analyses")
-        .update({
-          status: "failed",
-          error_message: error instanceof Error ? error.message : "Unknown error",
-          processing_completed_at: new Date().toISOString(),
-        })
-        .eq("id", analysisId)
+    // Update analysis record with error status
+    if (request.formData) {
+      try {
+        const formData = await request.formData()
+        const analysisId = formData.get("analysisId") as string
+        if (analysisId) {
+          await supabase
+            .from("analyses")
+            .update({
+              status: "failed",
+              error_message: error instanceof Error ? error.message : "Analysis failed",
+              processing_completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", analysisId)
+        }
+      } catch (updateError) {
+        console.error("Failed to update error status:", updateError)
+      }
     }
 
     return NextResponse.json(
