@@ -1,8 +1,9 @@
-import * as crypto from 'crypto';
+import * as crypto from "crypto"
+
 export type AccountType = "trial_pro" | "basic" | "pro" | "team" | "enterprise"
-export type UserRole = "data-scientist" | "data-engineer" | "business-analyst" | "admin" | "support-admin"
+export type UserRole = string // Allow any string for flexibility
 export type TrialStatus = "active" | "expired" | "converted" | "none"
-export type Region = "nigeria" | "america" | "global"
+export type Region = "nigeria" | "america" | "global" | "europe" | "asia"
 
 export interface TrialSubscription {
   id: string
@@ -28,12 +29,15 @@ export interface ProFeatures {
   allFileFormats: boolean
   industrySpecificAnalysis: boolean
   historicalLearning: boolean
-  teamCollaboration: boolean // REMOVED from trial
+  teamCollaboration: boolean
   prioritySupport: boolean
   apiAccess: boolean
   customReports: boolean
   dataExport: boolean
   realTimeAnalytics: boolean
+  roleBasedAnalysis: boolean
+  goalBasedAnalysis: boolean
+  multiRegionSupport: boolean
 }
 
 export interface LoginRules {
@@ -61,6 +65,7 @@ export interface UserAIContext {
   industry: string
   role: UserRole
   company: string
+  goals?: string[]
   signupDate: string
   preferences?: {
     analysisStyle: "executive" | "technical" | "business"
@@ -69,7 +74,7 @@ export interface UserAIContext {
   }
 }
 
-// PRO Trial Features (Full PRO access for 30 days) - REMOVED team collaboration
+// Enhanced PRO Trial Features
 export const proTrialFeatures: ProFeatures = {
   maxUploadsPerMonth: "unlimited",
   maxFileSize: 500, // 500MB
@@ -77,12 +82,15 @@ export const proTrialFeatures: ProFeatures = {
   allFileFormats: true,
   industrySpecificAnalysis: true,
   historicalLearning: true,
-  teamCollaboration: false, // REMOVED from trial - upgrade required
+  teamCollaboration: false, // Upgrade required
   prioritySupport: true,
   apiAccess: true,
   customReports: true,
   dataExport: true,
   realTimeAnalytics: true,
+  roleBasedAnalysis: true, // NEW
+  goalBasedAnalysis: true, // NEW
+  multiRegionSupport: true, // NEW
 }
 
 // Default Login Rules
@@ -93,10 +101,10 @@ export const defaultLoginRules: LoginRules = {
   requireStrongPassword: true,
   enableTwoFactor: false, // Optional for trial
   sessionTimeout: 24, // 24 hours
-  allowedRegions: ["nigeria", "america", "global"],
+  allowedRegions: ["nigeria", "america", "global", "europe", "asia"],
 }
 
-// Email Rules by Region
+// Enhanced Email Rules by Region
 export const emailRulesByRegion: Record<Region, EmailRules> = {
   nigeria: {
     requireVerification: true,
@@ -116,6 +124,24 @@ export const emailRulesByRegion: Record<Region, EmailRules> = {
     requireCorporateEmail: false,
     autoApproveRegions: ["america"],
   },
+  europe: {
+    requireVerification: true,
+    verificationExpiry: 48,
+    maxResendAttempts: 5,
+    allowedDomains: [],
+    blockedDomains: ["tempmail.com", "10minutemail.com", "guerrillamail.com"],
+    requireCorporateEmail: false,
+    autoApproveRegions: ["europe"],
+  },
+  asia: {
+    requireVerification: true,
+    verificationExpiry: 24,
+    maxResendAttempts: 3,
+    allowedDomains: [],
+    blockedDomains: ["tempmail.com", "10minutemail.com"],
+    requireCorporateEmail: false,
+    autoApproveRegions: ["asia"],
+  },
   global: {
     requireVerification: true,
     verificationExpiry: 48,
@@ -123,16 +149,16 @@ export const emailRulesByRegion: Record<Region, EmailRules> = {
     allowedDomains: [],
     blockedDomains: ["tempmail.com", "10minutemail.com", "guerrillamail.com"],
     requireCorporateEmail: false,
-    autoApproveRegions: ["nigeria", "america", "global"],
+    autoApproveRegions: ["nigeria", "america", "global", "europe", "asia"],
   },
 }
 
-// Regional Pricing (in local currency) - Updated Nigerian pricing
+// Enhanced Regional Pricing
 export const regionalPricing = {
   nigeria: {
     currency: "NGN",
     symbol: "₦",
-    basic: { monthly: 58500, annual: 585000 }, // ~$39 USD (1 USD = 1,500 NGN)
+    basic: { monthly: 58500, annual: 585000 }, // ~$39 USD
     pro: { monthly: 148500, annual: 1485000 }, // ~$99 USD
     team: { monthly: 748500, annual: 7485000 }, // ~$499 USD
     enterprise: { monthly: 0, annual: 0 }, // Custom pricing
@@ -143,6 +169,22 @@ export const regionalPricing = {
     basic: { monthly: 39, annual: 390 },
     pro: { monthly: 99, annual: 990 },
     team: { monthly: 499, annual: 4990 },
+    enterprise: { monthly: 0, annual: 0 }, // Custom
+  },
+  europe: {
+    currency: "EUR",
+    symbol: "€",
+    basic: { monthly: 35, annual: 350 },
+    pro: { monthly: 89, annual: 890 },
+    team: { monthly: 449, annual: 4490 },
+    enterprise: { monthly: 0, annual: 0 }, // Custom
+  },
+  asia: {
+    currency: "USD",
+    symbol: "$",
+    basic: { monthly: 29, annual: 290 },
+    pro: { monthly: 79, annual: 790 },
+    team: { monthly: 399, annual: 3990 },
     enterprise: { monthly: 0, annual: 0 }, // Custom
   },
   global: {
@@ -160,9 +202,21 @@ export function detectUserRegion(email: string, ipAddress?: string): Region {
   const domain = email.split("@")[1]?.toLowerCase()
 
   // Nigerian domains
-  const nigerianDomains = [".ng", "nitel.net", "yahoo.com.ng", "gmail.com"]
+  const nigerianDomains = [".ng", "nitel.net", "yahoo.com.ng"]
   if (nigerianDomains.some((d) => domain?.includes(d))) {
     return "nigeria"
+  }
+
+  // European domains
+  const europeanDomains = [".eu", ".de", ".fr", ".uk", ".it", ".es", ".nl"]
+  if (europeanDomains.some((d) => domain?.endsWith(d))) {
+    return "europe"
+  }
+
+  // Asian domains
+  const asianDomains = [".jp", ".cn", ".kr", ".in", ".sg", ".my"]
+  if (asianDomains.some((d) => domain?.endsWith(d))) {
+    return "asia"
   }
 
   // American domains
@@ -178,8 +232,8 @@ export function createProTrial(
   name: string,
   email: string,
   industry: string,
-  company: string, // Now required
-  role: UserRole = "business-analyst",
+  company: string,
+  role: UserRole = "business_analyst",
   region?: Region,
 ): TrialSubscription {
   const detectedRegion = region || detectUserRegion(email)
@@ -187,8 +241,8 @@ export function createProTrial(
   const trialEndDate = new Date(trialStartDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
   return {
-    id: `trial_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
-    userId: `user_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
+    id: `trial_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`,
+    userId: `user_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`,
     accountType: "trial_pro",
     trialStatus: "active",
     region: detectedRegion,
@@ -204,62 +258,151 @@ export function createProTrial(
   }
 }
 
-export function createUserAIContext(region: Region, industry: string, role: UserRole, company: string): UserAIContext {
+export function createUserAIContext(
+  region: Region,
+  industry: string,
+  role: UserRole,
+  company: string,
+  goals?: string[],
+): UserAIContext {
   return {
     region,
     industry,
     role,
     company,
+    goals,
     signupDate: new Date().toISOString(),
     preferences: {
-      analysisStyle: role === "data-scientist" ? "technical" : role === "business-analyst" ? "business" : "executive",
+      analysisStyle: getAnalysisStyleFromRole(role),
       reportFormat: "detailed",
       industryFocus: true,
     },
   }
 }
 
+function getAnalysisStyleFromRole(role: string): "executive" | "technical" | "business" {
+  const roleLower = role.toLowerCase()
+
+  // Executive roles
+  if (
+    roleLower.includes("ceo") ||
+    roleLower.includes("cto") ||
+    roleLower.includes("cfo") ||
+    roleLower.includes("executive") ||
+    roleLower.includes("director") ||
+    roleLower.includes("vp")
+  ) {
+    return "executive"
+  }
+
+  // Technical roles
+  if (
+    roleLower.includes("data scientist") ||
+    roleLower.includes("data engineer") ||
+    roleLower.includes("engineer") ||
+    roleLower.includes("developer") ||
+    roleLower.includes("analyst")
+  ) {
+    return "technical"
+  }
+
+  // Default to business
+  return "business"
+}
+
 export function getAIContextualPrompt(context: UserAIContext, fileName: string): string {
-  const { region, industry, role, company } = context
+  const { region, industry, role, company, goals } = context
 
-  const regionContext =
-    region === "nigeria"
-      ? "Nigerian market context"
-      : region === "america"
-        ? "US market context"
-        : "global market context"
+  const regionContext = {
+    nigeria: "Nigerian market context with focus on local business practices and economic conditions",
+    america: "US market context with emphasis on American business standards and regulations",
+    europe: "European market context with GDPR compliance and EU business practices",
+    asia: "Asian market context with regional business customs and growth patterns",
+    global: "Global market context with international best practices",
+  }[region]
 
-  const rolePrompt =
-    {
-      "data-scientist": "Focus on statistical analysis, machine learning opportunities, and technical insights",
-      "data-engineer": "Emphasize data quality, schema optimization, and technical architecture recommendations",
-      "business-analyst": "Provide business insights, KPI analysis, and operational recommendations",
-      admin: "Focus on high-level strategic insights and executive decision support",
-    }[role] || "Provide comprehensive business analysis"
+  const rolePrompt = getRoleSpecificPrompt(role)
+  const goalsPrompt =
+    goals && goals.length > 0
+      ? `\n\nSPECIFIC ANALYSIS GOALS:\n${goals.map((goal, i) => `${i + 1}. ${goal}`).join("\n")}`
+      : ""
 
   return `
-CONTEXTUAL ANALYSIS REQUEST
-===========================
+ENHANCED CONTEXTUAL ANALYSIS REQUEST
+===================================
 
 Company: ${company}
 Industry: ${industry}
-Role: ${role.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+Role: ${role}
 Region: ${regionContext}
-File: ${fileName}
+File: ${fileName}${goalsPrompt}
 
 ANALYSIS REQUIREMENTS:
 1. ${rolePrompt}
 2. Tailor insights specifically for ${industry} industry
-3. Consider ${regionContext} and regional business practices
+3. Consider ${regionContext}
 4. Provide recommendations suitable for ${company}
-5. Use language and examples relevant to a ${role.replace("-", " ")}
+5. Use language and examples relevant to a ${role}
+${goals && goals.length > 0 ? `6. Address the specific goals outlined above` : ""}
 
 Please provide analysis that demonstrates deep understanding of:
 - ${industry} industry dynamics and challenges
-- ${region === "nigeria" ? "Nigerian business environment and market conditions" : region === "america" ? "US business environment and market conditions" : "Global business environment"}
-- Role-specific needs and priorities for a ${role.replace("-", " ")}
+- ${regionContext}
+- Role-specific needs and priorities for a ${role}
 - Company-specific insights for ${company}
+${goals && goals.length > 0 ? `- Achievement of the specified analysis goals` : ""}
 `
+}
+
+function getRoleSpecificPrompt(role: string): string {
+  const roleLower = role.toLowerCase()
+
+  // Executive roles
+  if (roleLower.includes("ceo") || roleLower.includes("executive") || roleLower.includes("director")) {
+    return "Focus on strategic insights, competitive analysis, market positioning, and high-level recommendations for executive decision making"
+  }
+
+  // Data roles
+  if (roleLower.includes("data scientist")) {
+    return "Focus on statistical analysis, machine learning opportunities, and technical insights"
+  }
+
+  if (roleLower.includes("data engineer")) {
+    return "Emphasize data quality, schema optimization, and technical architecture recommendations"
+  }
+
+  // Business roles
+  if (roleLower.includes("analyst") || roleLower.includes("business")) {
+    return "Provide business insights, KPI analysis, and operational recommendations"
+  }
+
+  // Marketing roles
+  if (roleLower.includes("marketing")) {
+    return "Focus on customer insights, campaign performance, market segmentation, and marketing ROI"
+  }
+
+  // Sales roles
+  if (roleLower.includes("sales")) {
+    return "Emphasize sales performance, lead conversion, customer acquisition, and revenue optimization"
+  }
+
+  // Operations roles
+  if (roleLower.includes("operations")) {
+    return "Focus on process efficiency, resource utilization, workflow optimization, and operational KPIs"
+  }
+
+  // Financial roles
+  if (roleLower.includes("financial") || roleLower.includes("finance")) {
+    return "Provide financial performance analysis, budget insights, cost optimization, and profitability recommendations"
+  }
+
+  // HR roles
+  if (roleLower.includes("hr") || roleLower.includes("human resources")) {
+    return "Focus on employee performance, retention analysis, recruitment metrics, and organizational insights"
+  }
+
+  // Default comprehensive analysis
+  return `Provide comprehensive analysis tailored to a ${role}, focusing on insights and recommendations relevant to their specific responsibilities and decision-making needs`
 }
 
 export function calculateDaysRemaining(trialEndDate: string): number {
@@ -442,6 +585,10 @@ export function getRegionalWelcomeMessage(region: Region): string {
       return "Welcome to DaytaTech.ai! 🇳🇬 Start your 30-day PRO trial and transform your business data into actionable insights. Specially designed for Nigerian businesses!"
     case "america":
       return "Welcome to DaytaTech.ai! 🇺🇸 Begin your 30-day PRO trial and unlock the power of AI-driven data analysis for your business."
+    case "europe":
+      return "Welcome to DaytaTech.ai! 🇪🇺 Start your 30-day PRO trial with GDPR-compliant data processing and European business insights."
+    case "asia":
+      return "Welcome to DaytaTech.ai! 🌏 Begin your 30-day PRO trial and discover AI-powered insights tailored for Asian markets."
     default:
       return "Welcome to DaytaTech.ai! 🌍 Start your 30-day PRO trial and discover how AI can revolutionize your data analysis workflow."
   }
@@ -467,6 +614,19 @@ export function getRegionalSupport(region: Region): {
         supportPhone: "+1-800-DAYTA-US",
         supportHours: "9 AM - 6 PM EST (Monday - Friday)",
         language: ["English", "Spanish"],
+      }
+    case "europe":
+      return {
+        supportEmail: "support-eu@daytatech.ai",
+        supportPhone: "+44-800-DAYTA-EU",
+        supportHours: "9 AM - 6 PM CET (Monday - Friday)",
+        language: ["English", "German", "French"],
+      }
+    case "asia":
+      return {
+        supportEmail: "support-asia@daytatech.ai",
+        supportHours: "9 AM - 6 PM JST (Monday - Friday)",
+        language: ["English", "Japanese", "Chinese"],
       }
     default:
       return {

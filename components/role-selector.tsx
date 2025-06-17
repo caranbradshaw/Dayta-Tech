@@ -1,170 +1,110 @@
 "use client"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { InfoIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
 
-export type AnalysisRole = "business_analyst" | "data_scientist" | "data_engineer" | "executive"
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { User, Plus } from "lucide-react"
+
+const PREDEFINED_ROLES = [
+  { role: "CEO/Founder", description: "Strategic oversight and decision making" },
+  { role: "Data Analyst", description: "Data analysis and reporting" },
+  { role: "Business Analyst", description: "Business process analysis" },
+  { role: "Marketing Manager", description: "Marketing strategy and campaigns" },
+  { role: "Sales Manager", description: "Sales performance and strategy" },
+  { role: "Operations Manager", description: "Operational efficiency and processes" },
+  { role: "Product Manager", description: "Product development and strategy" },
+  { role: "Finance Manager", description: "Financial analysis and planning" },
+  { role: "HR Manager", description: "Human resources and talent management" },
+  { role: "IT Manager", description: "Technology and systems management" },
+  { role: "Consultant", description: "External advisory and analysis" },
+  { role: "Student/Researcher", description: "Academic or research purposes" },
+]
 
 interface RoleSelectorProps {
-  selectedRole: AnalysisRole
-  onChange: (role: AnalysisRole) => void
-  isPremium?: boolean
+  selectedRole: string
+  onRoleChange: (role: string) => void
   className?: string
 }
 
-export function RoleSelector({ selectedRole, onChange, isPremium = false, className }: RoleSelectorProps) {
-  const handleRoleChange = (value: string) => {
-    onChange(value as AnalysisRole)
+export function RoleSelector({ selectedRole, onRoleChange, className }: RoleSelectorProps) {
+  const [customRole, setCustomRole] = useState("")
+  const [showCustomInput, setShowCustomInput] = useState(false)
+
+  const handleRoleSelect = (role: string) => {
+    onRoleChange(role)
+    setShowCustomInput(false)
+    setCustomRole("")
+  }
+
+  const handleCustomRole = () => {
+    if (customRole.trim()) {
+      onRoleChange(customRole.trim())
+      setCustomRole("")
+      setShowCustomInput(false)
+    }
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">Analysis Perspective</Label>
-        {isPremium && (
-          <span className="inline-flex items-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-2.5 py-0.5 text-xs font-medium text-white">
-            Premium Feature
-          </span>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          What's Your Role?
+        </CardTitle>
+        <CardDescription>Select your role to get personalized insights and recommendations.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-2">
+          {PREDEFINED_ROLES.map(({ role, description }) => (
+            <Button
+              key={role}
+              variant={selectedRole === role ? "default" : "outline"}
+              onClick={() => handleRoleSelect(role)}
+              className="justify-start h-auto p-3 text-left"
+            >
+              <div>
+                <div className="font-medium">{role}</div>
+                <div className="text-xs text-muted-foreground mt-1">{description}</div>
+              </div>
+            </Button>
+          ))}
+        </div>
+
+        {!showCustomInput ? (
+          <Button variant="outline" onClick={() => setShowCustomInput(true)} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Custom Role
+          </Button>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="custom-role">Custom Role</Label>
+            <div className="flex gap-2">
+              <Input
+                id="custom-role"
+                placeholder="Enter your role..."
+                value={customRole}
+                onChange={(e) => setCustomRole(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleCustomRole()}
+              />
+              <Button onClick={handleCustomRole} size="sm">
+                Add
+              </Button>
+            </div>
+          </div>
         )}
-      </div>
 
-      <RadioGroup
-        value={selectedRole}
-        onValueChange={handleRoleChange}
-        className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4"
-      >
-        <div className="relative">
-          <div
-            className={cn(
-              "flex items-center space-x-2 rounded-md border p-3 hover:bg-slate-50",
-              selectedRole === "business_analyst" && "border-blue-600 bg-blue-50 hover:bg-blue-50",
-            )}
-          >
-            <RadioGroupItem value="business_analyst" id="business_analyst" />
-            <Label
-              htmlFor="business_analyst"
-              className={cn(
-                "flex-1 cursor-pointer font-medium",
-                selectedRole === "business_analyst" && "text-blue-600",
-              )}
-            >
-              Business Analyst
-            </Label>
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-slate-400" />
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Business Analyst Perspective</h4>
-                  <p className="text-sm text-slate-600">
-                    Focuses on operational insights, KPIs, business metrics, and actionable recommendations for process
-                    improvement and decision support.
-                  </p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
+        {selectedRole && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <Label className="text-sm font-medium">Selected Role:</Label>
+            <Badge variant="secondary" className="mt-1">
+              {selectedRole}
+            </Badge>
           </div>
-        </div>
-
-        <div className="relative">
-          <div
-            className={cn(
-              "flex items-center space-x-2 rounded-md border p-3 hover:bg-slate-50",
-              selectedRole === "data_scientist" && "border-purple-600 bg-purple-50 hover:bg-purple-50",
-            )}
-          >
-            <RadioGroupItem value="data_scientist" id="data_scientist" />
-            <Label
-              htmlFor="data_scientist"
-              className={cn(
-                "flex-1 cursor-pointer font-medium",
-                selectedRole === "data_scientist" && "text-purple-600",
-              )}
-            >
-              Data Scientist
-            </Label>
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-slate-400" />
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Data Scientist Perspective</h4>
-                  <p className="text-sm text-slate-600">
-                    Emphasizes statistical insights, predictive modeling opportunities, feature importance, correlation
-                    analysis, and machine learning potential.
-                  </p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div
-            className={cn(
-              "flex items-center space-x-2 rounded-md border p-3 hover:bg-slate-50",
-              selectedRole === "data_engineer" && "border-green-600 bg-green-50 hover:bg-green-50",
-            )}
-          >
-            <RadioGroupItem value="data_engineer" id="data_engineer" />
-            <Label
-              htmlFor="data_engineer"
-              className={cn("flex-1 cursor-pointer font-medium", selectedRole === "data_engineer" && "text-green-600")}
-            >
-              Data Engineer
-            </Label>
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-slate-400" />
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Data Engineer Perspective</h4>
-                  <p className="text-sm text-slate-600">
-                    Focuses on data quality, structure optimization, schema recommendations, data pipeline improvements,
-                    and technical implementation details.
-                  </p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div
-            className={cn(
-              "flex items-center space-x-2 rounded-md border p-3 hover:bg-slate-50",
-              selectedRole === "executive" && "border-orange-600 bg-orange-50 hover:bg-orange-50",
-            )}
-          >
-            <RadioGroupItem value="executive" id="executive" />
-            <Label
-              htmlFor="executive"
-              className={cn("flex-1 cursor-pointer font-medium", selectedRole === "executive" && "text-orange-600")}
-            >
-              Executive
-            </Label>
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-slate-400" />
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Executive Perspective</h4>
-                  <p className="text-sm text-slate-600">
-                    Provides strategic insights, competitive analysis, market positioning, risk assessment, and
-                    high-level recommendations for C-suite decision makers.
-                  </p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          </div>
-        </div>
-      </RadioGroup>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

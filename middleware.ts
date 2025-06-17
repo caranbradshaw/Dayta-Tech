@@ -1,35 +1,41 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  // Auto-run setup on first visit to dashboard
-  if (request.nextUrl.pathname === "/dashboard" && !request.cookies.get("setup_complete")) {
-    try {
-      // Run auto-setup
-      const trustedOrigins = ["https://example.com"]; // Define trusted origins
-      if (!trustedOrigins.includes(request.nextUrl.origin)) {
-        throw new Error("Untrusted origin detected");
-      }
-      const setupResponse = await fetch(`${request.nextUrl.origin}/api/auto-setup`, {
-        method: "POST",
-      })
+export function middleware(request: NextRequest) {
+  // Get the current environment
+  const isDevelopment = process.env.NODE_ENV === "development"
 
-      const setupResult = await setupResponse.json()
+  // Define trusted origins for production
+  const trustedOrigins = [
+    "https://daytatech.vercel.app",
+    "https://www.daytatech.com",
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  ].filter(Boolean)
 
-      if (setupResult.success) {
-        // Set cookie to prevent re-running setup
-        const response = NextResponse.next()
-        response.cookies.set("setup_complete", "true", { maxAge: 60 * 60 * 24 * 30 }) // 30 days
-        return response
-      }
-    } catch (error) {
-      console.error("Auto-setup failed:", error)
-    }
+  // In development, allow localhost
+  if (isDevelopment) {
+    const devOrigins = [
+      "http://localhost:3000",
+      "https://localhost:3000",
+      "http://localhost:3001",
+      "https://localhost:3001",
+    ]
+    trustedOrigins.push(...devOrigins)
+  }
+
+  // Allow Vercel preview domains
+  const origin = request.nextUrl.origin
+  const isVercelPreview = origin.includes(".vercel.app")
+
+  if (!isDevelopment && !isVercelPreview && !trustedOrigins.includes(origin)) {
+    console.warn(`Untrusted origin detected: ${origin}`)
+    return NextResponse.json({ error: "Untrusted origin" }, { status: 403 })
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 }
