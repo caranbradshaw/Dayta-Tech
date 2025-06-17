@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Download, FileText, FileSpreadsheet, Code } from "lucide-react"
+import { Download, FileText, FileSpreadsheet, Code, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface ReportExportDialogProps {
@@ -57,6 +57,8 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
     setIsExporting(true)
 
     try {
+      console.log(`Starting export of report ${reportId} as ${format}`)
+
       const response = await fetch(`/api/reports/${reportId}/export`, {
         method: "POST",
         headers: {
@@ -65,30 +67,46 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
         body: JSON.stringify({ format }),
       })
 
+      console.log(`Export response status: ${response.status}`)
+
       if (!response.ok) {
-        throw new Error("Export failed")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `Export failed with status ${response.status}`)
       }
 
       // Get the filename from the response headers
       const contentDisposition = response.headers.get("content-disposition")
       const filename = contentDisposition
         ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
-        : `report.${format}`
+        : `${reportTitle.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.${format}`
+
+      console.log(`Downloading file: ${filename}`)
 
       // Create blob and download
       const blob = await response.blob()
+      console.log(`Blob size: ${blob.size} bytes`)
+
+      if (blob.size === 0) {
+        throw new Error("Generated file is empty")
+      }
+
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
       a.download = filename
+      a.style.display = "none"
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 100)
 
       toast({
         title: "Export successful",
-        description: `Report exported as ${format.toUpperCase()}`,
+        description: `Report exported as ${format.toUpperCase()} - ${filename}`,
       })
 
       setIsOpen(false)
@@ -96,7 +114,8 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
       console.error("Export error:", error)
       toast({
         title: "Export failed",
-        description: "There was an error exporting your report. Please try again.",
+        description:
+          error instanceof Error ? error.message : "There was an error exporting your report. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -137,8 +156,20 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
             })}
           </RadioGroup>
 
+          {/* Debug info in development */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+              <div className="flex items-center gap-1 mb-1">
+                <AlertCircle className="h-3 w-3" />
+                Debug Info
+              </div>
+              <div>Report ID: {reportId}</div>
+              <div>Selected Format: {format}</div>
+            </div>
+          )}
+
           <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isExporting}>
               Cancel
             </Button>
             <Button onClick={handleExport} disabled={isExporting}>
