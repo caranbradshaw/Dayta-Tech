@@ -1,64 +1,63 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check } from "lucide-react"
+import { CheckCircle } from "lucide-react"
 
 interface PricingCardProps {
   title: string
-  price: string
   description: string
-  features: string[]
-  buttonText: string
-  buttonVariant?: "default" | "outline" | "secondary" | "destructive" | "ghost" | "link"
-  popular?: boolean
-  onButtonClick?: () => void
-  currency?: string
+  price: string
   period?: string
+  features: string[]
+  cta: string
+  popular?: boolean
+  onClick?: () => void
+  className?: string
 }
 
 export function PricingCard({
   title,
-  price,
   description,
-  features,
-  buttonText,
-  buttonVariant = "default",
-  popular = false,
-  onButtonClick,
-  currency = "$",
+  price,
   period = "/month",
+  features,
+  cta,
+  popular = false,
+  onClick,
+  className = "",
 }: PricingCardProps) {
   return (
-    <Card className={`relative ${popular ? "border-blue-500 shadow-lg" : ""}`}>
+    <Card
+      className={`relative ${popular ? "border-2 border-blue-600 shadow-lg" : "border-2 border-gray-200"} ${className}`}
+    >
       {popular && (
-        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500">Most Popular</Badge>
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">Most Popular</Badge>
+        </div>
       )}
       <CardHeader>
-        <CardTitle className="text-2xl">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-        <div className="text-3xl font-bold">
-          {currency}
-          {price}
-          <span className="text-sm font-normal text-muted-foreground">{period}</span>
+        <CardTitle className="text-xl">{title}</CardTitle>
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-bold">{price}</span>
+          {price !== "Custom" && price !== "Free" && <span className="text-sm text-gray-500">{period}</span>}
         </div>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-2">
+        <ul className="space-y-3 mb-6">
           {features.map((feature, index) => (
-            <li key={index} className="flex items-center">
-              <Check className="h-4 w-4 text-green-500 mr-2" />
+            <li key={index} className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
               <span className="text-sm">{feature}</span>
             </li>
           ))}
         </ul>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full" variant={buttonVariant} onClick={onButtonClick}>
-          {buttonText}
+        <Button className="w-full" onClick={onClick} variant={popular ? "default" : "outline"}>
+          {cta}
         </Button>
-      </CardFooter>
+      </CardContent>
     </Card>
   )
 }
