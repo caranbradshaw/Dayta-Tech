@@ -1,4 +1,7 @@
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --no-audit --no-fund --prefer-offline",
+  "framework": "nextjs",
   "functions": {
     "app/api/ai/analyze/route.ts": {
       "maxDuration": 30
@@ -7,5 +10,9 @@
       "maxDuration": 30
     }
   },
-  "crons": []
+  "env": {
+    "NPM_CONFIG_CACHE": "/tmp/.npm",
+    "NPM_CONFIG_FUND": "false",
+    "NPM_CONFIG_AUDIT": "false"
+  }
 }
