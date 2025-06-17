@@ -32,7 +32,7 @@ export default function UploadPage() {
         formData.append(`file_${index}`, file)
       })
 
-      // Add other data
+      // Add all wizard data
       formData.append("companyName", data.companyName)
       formData.append("industry", data.industry)
       formData.append("companySize", data.companySize)
@@ -40,6 +40,37 @@ export default function UploadPage() {
       formData.append("goals", JSON.stringify(data.goals))
       formData.append("context", data.context)
 
+      // Add analysis configuration
+      formData.append("analysisRole", data.role === "data_engineer" ? "data_engineer" : "data_scientist")
+      formData.append("analysisTier", "enhanced") // Use enhanced tier for premium analysis
+      formData.append("userId", "temp-user-id") // This should come from auth context
+
+      // Create analysis record first
+      const analysisResponse = await fetch("/api/analyses/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: data.files[0]?.name || "analysis",
+          fileSize: data.files[0]?.size || 0,
+          industry: data.industry,
+          role: data.role,
+          goals: data.goals,
+          context: data.context,
+          companyName: data.companyName,
+          companySize: data.companySize,
+        }),
+      })
+
+      if (!analysisResponse.ok) {
+        throw new Error("Failed to create analysis record")
+      }
+
+      const { analysisId } = await analysisResponse.json()
+      formData.append("analysisId", analysisId)
+
+      // Start the enhanced analysis
       const response = await fetch("/api/ai/analyze-enhanced", {
         method: "POST",
         body: formData,
@@ -53,11 +84,11 @@ export default function UploadPage() {
 
       toast({
         title: "Analysis Complete!",
-        description: "Your data has been analyzed successfully.",
+        description: "Your data has been analyzed successfully with premium AI insights.",
       })
 
       // Redirect to results
-      router.push(`/analysis/${result.analysisId}`)
+      router.push(`/analysis/${analysisId}`)
     } catch (error) {
       console.error("Analysis error:", error)
       toast({

@@ -6,18 +6,34 @@ import type { AnalysisRole } from "@/components/role-selector"
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const file = formData.get("file") as File
-    const userId = formData.get("userId") as string
-    const analysisId = formData.get("analysisId") as string
-    const analysisRole = (formData.get("analysisRole") as AnalysisRole) || "business_analyst"
-    const industry = formData.get("industry") as string
-    const planType = formData.get("planType") as string
 
-    if (!file || !userId || !analysisId) {
-      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
+    // Get file and basic data
+    const files = []
+    let fileIndex = 0
+    while (formData.get(`file_${fileIndex}`)) {
+      files.push(formData.get(`file_${fileIndex}`) as File)
+      fileIndex++
     }
 
-    console.log(`Starting enhanced AI analysis for user ${userId}, analysis ${analysisId}, role ${analysisRole}`)
+    const file = files[0] // Use first file for now
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    // Get wizard data
+    const companyName = formData.get("companyName") as string
+    const industry = formData.get("industry") as string
+    const companySize = formData.get("companySize") as string
+    const role = formData.get("role") as string
+    const goals = JSON.parse((formData.get("goals") as string) || "[]")
+    const context = formData.get("context") as string
+    const analysisId = formData.get("analysisId") as string
+    const userId = (formData.get("userId") as string) || "temp-user"
+    const analysisRole = (formData.get("analysisRole") as AnalysisRole) || (role as AnalysisRole)
+    const analysisTier = (formData.get("analysisTier") as string) || "enhanced"
+
+    console.log(`Starting enhanced AI analysis for ${companyName} in ${industry} industry`)
+    console.log(`Analysis role: ${analysisRole}, Goals: ${goals.join(", ")}`)
 
     // Update status to processing
     await supabase
@@ -29,10 +45,28 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", analysisId)
 
-    // Perform enhanced AI analysis with specified role
-    const analysisResult = await analyzeUploadedFileEnhanced(file, userId, analysisId, analysisRole)
+    // Create enhanced user context
+    const userContext = {
+      company: companyName,
+      industry: industry,
+      companySize: companySize,
+      role: analysisRole,
+      goals: goals,
+      context: context,
+      region: "global", // Default for now
+    }
 
-    // Update the analysis record with enhanced results
+    // Perform enhanced AI analysis with all context
+    const analysisResult = await analyzeUploadedFileEnhanced(
+      file,
+      userId,
+      analysisId,
+      analysisRole,
+      analysisTier as "standard" | "enhanced" | "claude_premium",
+      userContext,
+    )
+
+    // Update the analysis record with comprehensive results
     const { error: updateError } = await supabase
       .from("analyses")
       .update({
@@ -50,6 +84,8 @@ export async function POST(request: NextRequest) {
           processing_metrics: analysisResult.processingMetrics,
           analysis_type: "enhanced_professional",
           analysis_role: analysisRole,
+          user_goals: goals,
+          user_context: userContext,
         },
         recommendations: {
           strategic_recommendations: analysisResult.executiveSummary.strategicRecommendations,
@@ -65,7 +101,11 @@ export async function POST(request: NextRequest) {
         metadata: {
           analysis_role: analysisRole,
           industry,
-          plan_type: planType,
+          company_name: companyName,
+          company_size: companySize,
+          user_goals: goals,
+          user_context: context,
+          plan_type: "enhanced",
           rows_analyzed: analysisResult.processingMetrics.totalRowsAnalyzed,
           columns_analyzed: analysisResult.processingMetrics.totalColumnsAnalyzed,
           processing_time_ms: analysisResult.processingMetrics.processingTimeMs,
@@ -79,95 +119,45 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to update analysis: ${updateError.message}`)
     }
 
-    // Create enhanced insight records
-    const enhancedInsightRecords = [
-      ...analysisResult.detailedInsights.map((insight) => ({
-        analysis_id: analysisId,
-        project_id: analysisId,
-        type: insight.category || "business_intelligence",
-        title: insight.title,
-        content: insight.finding,
-        confidence_score: insight.confidence || 0.9,
-        metadata: {
-          impact: insight.impact,
-          supporting_data: insight.supporting_data,
-          analysis_type: "enhanced",
-          analysis_role: analysisRole,
-          ai_provider: analysisResult.processingMetrics.aiProvider,
-        },
-        ai_model: `Enhanced ${analysisResult.processingMetrics.aiProvider}`,
-        processing_time_ms: analysisResult.processingMetrics.processingTimeMs,
-        created_at: new Date().toISOString(),
-      })),
-      ...analysisResult.industrySpecificInsights.map((insight) => ({
-        analysis_id: analysisId,
-        project_id: analysisId,
-        type: "industry_specific",
-        title: `Industry Insight: ${insight.category}`,
-        content: insight.insight,
-        confidence_score: 0.92,
-        metadata: {
-          benchmark: insight.benchmark,
-          competitive_advantage: insight.competitive_advantage,
-          analysis_type: "industry_enhanced",
-          analysis_role: analysisRole,
-        },
-        ai_model: `Enhanced ${analysisResult.processingMetrics.aiProvider}`,
-        processing_time_ms: analysisResult.processingMetrics.processingTimeMs,
-        created_at: new Date().toISOString(),
-      })),
-    ]
+    // Create comprehensive report for export
+    const reportTitle = `${analysisRole.replace("_", " ").toUpperCase()} Analysis: ${companyName} - ${file.name}`
 
-    if (enhancedInsightRecords.length > 0) {
-      const { error: insightsError } = await supabase.from("insights").insert(enhancedInsightRecords)
-
-      if (insightsError) {
-        console.error("Failed to insert enhanced insights:", insightsError)
-      }
-    }
-
-    // Create a saved report after successful analysis
-    try {
-      const reportTitle = `${analysisRole.replace("_", " ").toUpperCase()} Analysis: ${file.name}`
-
-      const { error: reportError } = await supabase.from("reports").insert({
-        user_id: userId,
-        analysis_id: analysisId,
-        title: reportTitle,
-        description: `Comprehensive ${analysisRole.replace("_", " ")} analysis report generated from ${file.name}`,
-        report_type: "analysis_report",
-        content: {
-          executive_summary: analysisResult.executiveSummary,
-          detailed_insights: analysisResult.detailedInsights,
-          industry_insights: analysisResult.industrySpecificInsights,
-          role_recommendations: analysisResult.roleBasedRecommendations,
-          data_quality_report: analysisResult.dataQualityReport,
-          competitive_analysis: analysisResult.competitiveAnalysis,
-          market_trends: analysisResult.marketTrends,
-          technical_details: analysisResult.technicalDetails,
-          processing_metrics: analysisResult.processingMetrics,
-        },
-        summary: analysisResult.executiveSummary.overview,
+    const { error: reportError } = await supabase.from("reports").insert({
+      user_id: userId,
+      analysis_id: analysisId,
+      title: reportTitle,
+      description: `Comprehensive ${analysisRole.replace("_", " ")} analysis for ${companyName} in ${industry} industry`,
+      report_type: "enhanced_analysis_report",
+      content: {
         executive_summary: analysisResult.executiveSummary,
-        insights: analysisResult.detailedInsights,
-        recommendations: analysisResult.roleBasedRecommendations,
-        file_name: file.name,
-        analysis_role: analysisRole,
-        industry: industry,
-        status: "generated",
-        created_at: new Date().toISOString(),
-      })
+        detailed_insights: analysisResult.detailedInsights,
+        industry_insights: analysisResult.industrySpecificInsights,
+        role_recommendations: analysisResult.roleBasedRecommendations,
+        data_quality_report: analysisResult.dataQualityReport,
+        competitive_analysis: analysisResult.competitiveAnalysis,
+        market_trends: analysisResult.marketTrends,
+        technical_details: analysisResult.technicalDetails,
+        processing_metrics: analysisResult.processingMetrics,
+        user_context: userContext,
+      },
+      summary: analysisResult.executiveSummary.overview,
+      executive_summary: analysisResult.executiveSummary,
+      insights: analysisResult.detailedInsights,
+      recommendations: analysisResult.roleBasedRecommendations,
+      file_name: file.name,
+      company_name: companyName,
+      industry: industry,
+      analysis_role: analysisRole,
+      tags: [industry, analysisRole, companySize, ...goals],
+      status: "generated",
+      created_at: new Date().toISOString(),
+    })
 
-      if (reportError) {
-        console.error("Failed to create report:", reportError)
-      } else {
-        console.log("Enhanced report created successfully for analysis:", analysisId)
-      }
-    } catch (reportCreationError) {
-      console.error("Error creating enhanced report:", reportCreationError)
+    if (reportError) {
+      console.error("Failed to create report:", reportError)
     }
 
-    console.log(`Enhanced AI analysis completed successfully for analysis ${analysisId}`)
+    console.log(`Enhanced AI analysis completed successfully for ${companyName}`)
 
     return NextResponse.json({
       success: true,
@@ -183,31 +173,11 @@ export async function POST(request: NextRequest) {
       processingMetrics: analysisResult.processingMetrics,
       analysisType: "enhanced_professional",
       analysisRole,
+      userContext,
       message: "Enhanced analysis completed successfully",
     })
   } catch (error) {
     console.error("Enhanced AI analysis error:", error)
-
-    // Update analysis record with error status
-    if (request.formData) {
-      try {
-        const formData = await request.formData()
-        const analysisId = formData.get("analysisId") as string
-        if (analysisId) {
-          await supabase
-            .from("analyses")
-            .update({
-              status: "failed",
-              error_message: error instanceof Error ? error.message : "Enhanced analysis failed",
-              processing_completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", analysisId)
-        }
-      } catch (updateError) {
-        console.error("Failed to update error status:", updateError)
-      }
-    }
 
     return NextResponse.json(
       {
