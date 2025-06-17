@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Download, FileText, FileSpreadsheet, Code, AlertCircle } from "lucide-react"
+import { Download, FileText, Code, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface ReportExportDialogProps {
@@ -30,25 +30,13 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
     {
       value: "pdf",
       label: "PDF Document",
-      description: "Professional report format, great for sharing",
-      icon: FileText,
-    },
-    {
-      value: "excel",
-      label: "Excel Spreadsheet",
-      description: "Data tables with insights and recommendations",
-      icon: FileSpreadsheet,
-    },
-    {
-      value: "word",
-      label: "Word Document",
-      description: "Editable document format",
+      description: "Professional report format (HTML-based)",
       icon: FileText,
     },
     {
       value: "json",
       label: "JSON Data",
-      description: "Raw data for developers and integrations",
+      description: "Raw structured data export",
       icon: Code,
     },
   ]
@@ -57,7 +45,7 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
     setIsExporting(true)
 
     try {
-      console.log(`Starting export of report ${reportId} as ${format}`)
+      console.log(`🔄 Starting export: Report ${reportId} as ${format}`)
 
       const response = await fetch(`/api/reports/${reportId}/export`, {
         method: "POST",
@@ -67,7 +55,7 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
         body: JSON.stringify({ format }),
       })
 
-      console.log(`Export response status: ${response.status}`)
+      console.log(`📡 Export response status: ${response.status}`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -80,11 +68,11 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
         ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
         : `${reportTitle.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.${format}`
 
-      console.log(`Downloading file: ${filename}`)
+      console.log(`📥 Downloading file: ${filename}`)
 
       // Create blob and download
       const blob = await response.blob()
-      console.log(`Blob size: ${blob.size} bytes`)
+      console.log(`📦 Blob size: ${blob.size} bytes`)
 
       if (blob.size === 0) {
         throw new Error("Generated file is empty")
@@ -105,15 +93,15 @@ export function ReportExportDialog({ reportId, reportTitle }: ReportExportDialog
       }, 100)
 
       toast({
-        title: "Export successful",
+        title: "✅ Export successful",
         description: `Report exported as ${format.toUpperCase()} - ${filename}`,
       })
 
       setIsOpen(false)
     } catch (error) {
-      console.error("Export error:", error)
+      console.error("❌ Export error:", error)
       toast({
-        title: "Export failed",
+        title: "❌ Export failed",
         description:
           error instanceof Error ? error.message : "There was an error exporting your report. Please try again.",
         variant: "destructive",
