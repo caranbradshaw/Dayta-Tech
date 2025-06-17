@@ -107,6 +107,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // **NEW: Create a saved report after successful analysis**
+    try {
+      const { data: analysis } = await supabase
+        .from("analyses")
+        .select("file_name, project_id")
+        .eq("id", analysisId)
+        .single()
+
+      const reportTitle = `${analysisRole.replace("_", " ").toUpperCase()} Analysis: ${analysis?.file_name || "Data Analysis"}`
+
+      const { error: reportError } = await supabase.from("reports").insert({
+        user_id: userId,
+        analysis_id: analysisId,
+        project_id: analysis?.project_id,
+        title: reportTitle,
+        description: `Comprehensive ${analysisRole.replace("_", " ")} analysis report generated from ${analysis?.file_name || "uploaded data"}`,
+        report_type: "analysis_report",
+        content: {
+          executive_summary: analysisResult.executiveSummary,
+          detailed_insights: analysisResult.detailedInsights,
+          industry_insights: analysisResult.industrySpecificInsights,
+          role_recommendations: analysisResult.roleBasedRecommendations,
+          data_quality_report: analysisResult.dataQualityReport,
+          competitive_analysis: analysisResult.competitiveAnalysis,
+          market_trends: analysisResult.marketTrends,
+          technical_details: analysisResult.technicalDetails,
+          processing_metrics: analysisResult.processingMetrics,
+        },
+        summary: analysisResult.executiveSummary.overview,
+        executive_summary: analysisResult.executiveSummary,
+        insights: analysisResult.detailedInsights,
+        recommendations: analysisResult.roleBasedRecommendations,
+        file_name: analysis?.file_name,
+        analysis_role: analysisRole,
+        status: "generated",
+      })
+
+      if (reportError) {
+        console.error("Failed to create report:", reportError)
+        // Don't fail the whole request if report creation fails
+      } else {
+        console.log("Report created successfully for analysis:", analysisId)
+      }
+    } catch (reportCreationError) {
+      console.error("Error creating report:", reportCreationError)
+      // Continue with the response even if report creation fails
+    }
+
     return NextResponse.json({
       success: true,
       analysisId,

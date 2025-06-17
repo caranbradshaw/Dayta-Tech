@@ -71,6 +71,57 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // **NEW: Create a saved report after successful analysis**
+    try {
+      const { data: analysis } = await supabase
+        .from("analyses")
+        .select("file_name, project_id")
+        .eq("id", analysisId)
+        .single()
+
+      const reportTitle = `${role?.toUpperCase() || "BUSINESS"} Analysis: ${analysis?.file_name || "Data Analysis"}`
+
+      const { error: reportError } = await supabase.from("reports").insert({
+        user_id: userId,
+        analysis_id: analysisId,
+        project_id: analysis?.project_id,
+        title: reportTitle,
+        description: `Analysis report generated from ${analysis?.file_name || "uploaded data"}`,
+        report_type: "analysis_report",
+        content: {
+          summary: analysisResult.summary,
+          insights: analysisResult.insights,
+          recommendations: analysisResult.recommendations,
+          data_quality: analysisResult.dataQuality,
+          processing_time: analysisResult.processingTime,
+          ai_provider: analysisResult.aiProvider,
+        },
+        summary: analysisResult.summary,
+        insights: analysisResult.insights,
+        recommendations: analysisResult.recommendations.map((rec) => ({
+          title: rec.title,
+          description: rec.description,
+          impact: rec.impact,
+          effort: rec.effort,
+          category: rec.category,
+        })),
+        file_name: analysis?.file_name,
+        analysis_role: role,
+        industry: industry,
+        status: "generated",
+      })
+
+      if (reportError) {
+        console.error("Failed to create report:", reportError)
+        // Don't fail the whole request if report creation fails
+      } else {
+        console.log("Report created successfully for analysis:", analysisId)
+      }
+    } catch (reportCreationError) {
+      console.error("Error creating report:", reportCreationError)
+      // Continue with the response even if report creation fails
+    }
+
     return NextResponse.json({
       success: true,
       analysisId,
