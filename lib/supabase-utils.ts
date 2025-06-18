@@ -365,36 +365,19 @@ export async function getUserProfile(userId: string): Promise<Profile | null> {
   try {
     const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 is "not found"
-      throw error
+    if (error) {
+      console.error("Error fetching profile:", error)
+      return null
     }
 
-    return data || null
-  } catch (error) {
-    console.error("Error fetching user profile:", error)
-    return null
-  }
-}
-
-export async function createUserProfile(
-  profile: Database["public"]["Tables"]["profiles"]["Insert"],
-): Promise<Profile | null> {
-  try {
-    const { data, error } = await supabase.from("profiles").insert(profile).select().single()
-
-    if (error) throw error
     return data
   } catch (error) {
-    console.error("Error creating user profile:", error)
+    console.error("Get profile error:", error)
     return null
   }
 }
 
-export async function updateUserProfile(
-  userId: string,
-  updates: Database["public"]["Tables"]["profiles"]["Update"],
-): Promise<Profile | null> {
+export async function updateUserProfile(userId: string, updates: Partial<Profile>) {
   try {
     const { data, error } = await supabase
       .from("profiles")
@@ -406,10 +389,60 @@ export async function updateUserProfile(
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error("Error updating profile:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, profile: data }
+  } catch (error) {
+    console.error("Update profile error:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
+    }
+  }
+}
+
+export async function checkUserCredits(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("upload_credits, export_credits, account_type")
+      .eq("id", userId)
+      .single()
+
+    if (error) {
+      console.error("Error checking credits:", error)
+      return null
+    }
+
     return data
   } catch (error) {
-    console.error("Error updating user profile:", error)
+    console.error("Check credits error:", error)
     return null
+  }
+}
+
+export async function deductCredits(userId: string, uploadCredits = 0, exportCredits = 0) {
+  try {
+    const { data, error } = await supabase.rpc("deduct_user_credits", {
+      user_id: userId,
+      upload_credits: uploadCredits,
+      export_credits: exportCredits,
+    })
+
+    if (error) {
+      console.error("Error deducting credits:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error("Deduct credits error:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
+    }
   }
 }
