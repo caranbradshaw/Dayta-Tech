@@ -2,143 +2,152 @@ import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import { analyzeUploadedFileEnhanced } from "@/lib/ai-service-enhanced"
 
-// Force Node.js runtime for file operations
-export const runtime = "nodejs"
-export const maxDuration = 30
-
 export async function POST(request: NextRequest) {
+  let formData
   try {
-    const formData = await request.formData()
-    const file = formData.get("file") as File
+    console.log("🔄 Starting AI analysis...")
+
+    formData = await request.formData()
+    const file = formData.get("file_0") as File
+    const analysisId = formData.get("analysisId") as string
     const userId = formData.get("userId") as string
-    const analysisRole = formData.get("analysisRole") as string
-    const goals = formData.get("goals") as string
+    const role = (formData.get("role") as string) || "business_analyst"
+    const goals = JSON.parse((formData.get("goals") as string) || "[]")
+    const context = (formData.get("context") as string) || ""
+    const companyName = formData.get("companyName") as string
+    const industry = formData.get("industry") as string
+    const companySize = formData.get("companySize") as string
 
-    console.log("Analysis request:", { fileName: file?.name, userId, analysisRole, goals })
-
-    if (!file || !userId) {
-      return NextResponse.json({ error: "Missing file or user ID" }, { status: 400 })
+    if (!file || !analysisId || !userId) {
+      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
 
-    // Create analysis record first
-    const { data: analysis, error: analysisError } = await supabase
+    console.log("📊 Analysis parameters:", {
+      fileName: file.name,
+      fileSize: file.size,
+      analysisId,
+      userId,
+      role,
+      goals,
+      companyName,
+      industry,
+    })
+
+    // Update analysis status to processing
+    await supabase
       .from("analyses")
-      .insert({
-        user_id: userId,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
+      .update({
         status: "processing",
-        role: analysisRole || "business_analyst",
-        goals: goals ? JSON.parse(goals) : [],
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .select()
-      .single()
+      .eq("id", analysisId)
 
-    if (analysisError) {
-      console.error("Error creating analysis record:", analysisError)
-      return NextResponse.json({ error: "Failed to create analysis record" }, { status: 500 })
+    // Create user context for AI analysis
+    const userContext = {
+      company: companyName,
+      industry,
+      companySize,
+      goals,
+      context,
+      region: "global",
     }
 
-    console.log("Analysis record created:", analysis.id)
+    console.log("🤖 Starting AI analysis with context:", userContext)
 
-    try {
-      // Perform the AI analysis
-      const result = await analyzeUploadedFileEnhanced(
-        file,
-        userId,
-        analysis.id,
-        analysisRole as any,
-        "standard",
-        goals ? JSON.parse(goals) : undefined,
-      )
+    // Run the AI analysis
+    const analysisResult = await analyzeUploadedFileEnhanced(
+      file,
+      userId,
+      analysisId,
+      role as any,
+      "enhanced",
+      userContext,
+    )
 
-      console.log("AI analysis completed for:", analysis.id)
+    console.log("✅ AI analysis completed:", {
+      executiveSummary: !!analysisResult.executiveSummary,
+      detailedInsights: analysisResult.detailedInsights?.length || 0,
+      recommendations: analysisResult.roleBasedRecommendations?.length || 0,
+    })
 
-      // Update analysis with results
-      const { error: updateError } = await supabase
-        .from("analyses")
-        .update({
-          status: "completed",
-          summary: result.executiveSummary.overview,
-          insights: result.detailedInsights,
-          recommendations: result.roleBasedRecommendations,
-          data_quality: result.dataQualityReport,
-          processing_completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          metadata: {
-            processing_metrics: result.processingMetrics,
-            ai_provider: result.processingMetrics.aiProvider,
-          },
-        })
-        .eq("id", analysis.id)
-
-      if (updateError) {
-        console.error("Error updating analysis:", updateError)
-        // Don't fail the request, just log the error
-      }
-
-      // Create a report record
-      const { error: reportError } = await supabase.from("reports").insert({
-        user_id: userId,
-        analysis_id: analysis.id,
-        title: `Analysis of ${file.name}`,
-        content: {
-          executive_summary: result.executiveSummary,
-          detailed_insights: result.detailedInsights,
-          industry_insights: result.industrySpecificInsights,
-          recommendations: result.roleBasedRecommendations,
-          data_quality: result.dataQualityReport,
-          competitive_analysis: result.competitiveAnalysis,
-          market_trends: result.marketTrends,
-          technical_details: result.technicalDetails,
-        },
+    // Update analysis with results
+    const { error: updateError } = await supabase
+      .from("analyses")
+      .update({
         status: "completed",
-        created_at: new Date().toISOString(),
+        summary: analysisResult.executiveSummary?.overview || "Analysis completed",
+        insights: {
+          executive_summary: analysisResult.executiveSummary,
+          detailed_insights: analysisResult.detailedInsights,
+          role_recommendations: analysisResult.roleBasedRecommendations,
+          data_quality_report: analysisResult.dataQualityReport,
+          user_context: userContext,
+          user_goals: goals,
+          processing_metrics: analysisResult.processingMetrics,
+        },
+        processing_completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
+      .eq("id", analysisId)
 
-      if (reportError) {
-        console.error("Error creating report:", reportError)
-        // Don't fail the request, just log the error
-      }
+    if (updateError) {
+      console.error("❌ Error updating analysis:", updateError)
+      throw new Error("Failed to save analysis results")
+    }
 
-      return NextResponse.json({
-        success: true,
-        analysisId: analysis.id,
-        result: result,
-      })
-    } catch (analysisError) {
-      console.error("AI analysis failed:", analysisError)
+    // Also create a report entry
+    const { error: reportError } = await supabase.from("reports").insert({
+      id: analysisId, // Use same ID as analysis
+      user_id: userId,
+      title: `Analysis: ${file.name}`,
+      description: analysisResult.executiveSummary?.overview || "Data analysis report",
+      report_data: {
+        executive_summary: analysisResult.executiveSummary,
+        detailed_insights: analysisResult.detailedInsights,
+        recommendations: analysisResult.roleBasedRecommendations,
+        data_quality: analysisResult.dataQualityReport,
+        user_context: userContext,
+      },
+      status: "completed",
+      created_at: new Date().toISOString(),
+    })
 
-      // Update analysis status to failed
+    if (reportError) {
+      console.warn("⚠️ Could not create report entry:", reportError)
+    }
+
+    console.log("🎉 Analysis saved successfully!")
+
+    return NextResponse.json({
+      success: true,
+      analysisId,
+      summary: analysisResult.executiveSummary?.overview,
+      insights: analysisResult.detailedInsights?.length || 0,
+      recommendations: analysisResult.roleBasedRecommendations?.length || 0,
+    })
+  } catch (error) {
+    console.error("❌ AI Analysis error:", error)
+
+    // Update analysis status to failed
+    if (formData?.get("analysisId")) {
       await supabase
         .from("analyses")
         .update({
           status: "failed",
-          error_message: analysisError instanceof Error ? analysisError.message : "Analysis failed",
           updated_at: new Date().toISOString(),
         })
-        .eq("id", analysis.id)
-
-      return NextResponse.json(
-        {
-          error: "Analysis failed",
-          details: analysisError instanceof Error ? analysisError.message : "Unknown error",
-        },
-        { status: 500 },
-      )
+        .eq("id", formData.get("analysisId") as string)
     }
-  } catch (error) {
-    console.error("Request processing error:", error)
+
     return NextResponse.json(
       {
-        error: "Failed to process request",
+        error: "Analysis failed",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
   }
 }
+
+export const runtime = "nodejs"
+export const maxDuration = 60

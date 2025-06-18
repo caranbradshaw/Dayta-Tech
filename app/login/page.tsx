@@ -15,7 +15,7 @@ import Link from "next/link"
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 })
 
 export default function LoginPage() {
@@ -35,68 +35,32 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      console.log("🔐 Starting login process for:", values.email)
-
-      // Check if Supabase is properly configured
-      if (!supabase) {
-        throw new Error("Supabase client not initialized")
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email.trim().toLowerCase(),
         password: values.password,
       })
 
-      console.log("🔐 Sign in response:", {
-        user: data.user ? "✅ Found" : "❌ None",
-        session: data.session ? "✅ Active" : "❌ None",
-        error: error ? error.message : "None",
-      })
-
       if (error) {
-        console.error("❌ Sign in error:", error)
-
-        let userMessage = "Failed to sign in"
-        if (error.message.includes("Invalid login credentials")) {
-          userMessage = "Invalid email or password. Please check your credentials."
-        } else if (error.message.includes("Email not confirmed")) {
-          userMessage = "Please verify your email address before signing in. Check your inbox."
-        } else if (error.message.includes("Too many requests")) {
-          userMessage = "Too many login attempts. Please try again later."
-        } else {
-          userMessage = error.message
-        }
-
         toast({
           title: "Sign in failed",
-          description: userMessage,
+          description: error.message,
           variant: "destructive",
         })
         return
       }
 
-      if (data.user && data.session) {
-        console.log("✅ Sign in successful, user:", data.user.id)
+      if (data.user) {
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
         })
-
-        // Redirect to dashboard
         router.push("/dashboard")
-      } else {
-        console.error("❌ No user or session returned")
-        toast({
-          title: "Sign in failed",
-          description: "Unable to establish session. Please try again.",
-          variant: "destructive",
-        })
       }
     } catch (error) {
-      console.error("💥 Unexpected login error:", error)
+      console.error("Login error:", error)
       toast({
         title: "Something went wrong",
-        description: error instanceof Error ? error.message : "Please try again later.",
+        description: "Please try again later.",
         variant: "destructive",
       })
     } finally {
@@ -122,13 +86,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Enter your email"
-                        {...field}
-                        type="email"
-                        disabled={isLoading}
-                        className="h-11"
-                      />
+                      <Input placeholder="john@company.com" {...field} type="email" disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,7 +106,7 @@ export default function LoginPage() {
                           {...field}
                           type={showPassword ? "text" : "password"}
                           disabled={isLoading}
-                          className="h-11 pr-10"
+                          className="pr-10"
                         />
                         <Button
                           type="button"
@@ -180,11 +138,11 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          <div className="mt-6 text-center space-y-4">
+          <div className="mt-6 text-center">
             <div className="text-sm text-gray-600">
               Don't have an account?{" "}
               <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">
-                Sign up for free
+                Sign up
               </Link>
             </div>
           </div>
