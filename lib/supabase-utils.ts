@@ -360,12 +360,16 @@ export async function checkUsageLimit(
   }
 }
 
-// Add this function after the existing functions
+// User Profile Management
 export async function getUserProfile(userId: string): Promise<Profile | null> {
   try {
     const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
     if (error) {
+      if (error.code === "PGRST116") {
+        // Profile doesn't exist, return null
+        return null
+      }
       console.error("Error fetching profile:", error)
       return null
     }
@@ -373,6 +377,22 @@ export async function getUserProfile(userId: string): Promise<Profile | null> {
     return data
   } catch (error) {
     console.error("Get profile error:", error)
+    return null
+  }
+}
+
+export async function createUserProfile(profileData: any): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase.from("profiles").insert(profileData).select().single()
+
+    if (error) {
+      console.error("Error creating profile:", error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error("Create profile error:", error)
     return null
   }
 }

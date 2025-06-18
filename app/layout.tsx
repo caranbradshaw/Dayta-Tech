@@ -2,32 +2,15 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AuthProvider } from "@/components/auth-context"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toast"
+import { AuthProvider } from "@/components/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DaytaTech.ai - The Grammarly of Data Analysis",
-  description:
-    "Get expert data insights without the expert. DaytaTech's AI gives you the analytical power of data engineers and data scientists—no technical skills required.",
-  keywords: "data analysis, AI analytics, business intelligence, data insights, automated analysis",
-  authors: [{ name: "DaytaTech.ai Team" }],
-  creator: "DaytaTech.ai",
-  publisher: "DaytaTech.ai",
-  openGraph: {
-    title: "DaytaTech.ai - The Grammarly of Data Analysis",
-    description: "Transform complex data into clear business insights with AI-powered analytics",
-    url: "https://daytatech.ai",
-    siteName: "DaytaTech.ai",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "DaytaTech.ai - The Grammarly of Data Analysis",
-    description: "Get expert data insights without the expert",
-    creator: "@daytatech",
-  },
+  title: "DaytaTech - AI-Powered Data Analysis",
+  description: "Transform your data into actionable insights with AI-powered analysis",
     generator: 'v0.dev'
 }
 
@@ -37,12 +20,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
