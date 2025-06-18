@@ -35,27 +35,48 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      console.log("Attempting to sign in with:", values.email)
+      console.log("🔐 Starting login process for:", values.email)
+
+      // Check if Supabase is properly configured
+      if (!supabase) {
+        throw new Error("Supabase client not initialized")
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email.trim().toLowerCase(),
         password: values.password,
       })
 
-      console.log("Sign in response:", { data, error })
+      console.log("🔐 Sign in response:", {
+        user: data.user ? "✅ Found" : "❌ None",
+        session: data.session ? "✅ Active" : "❌ None",
+        error: error ? error.message : "None",
+      })
 
       if (error) {
-        console.error("Sign in error:", error)
+        console.error("❌ Sign in error:", error)
+
+        let userMessage = "Failed to sign in"
+        if (error.message.includes("Invalid login credentials")) {
+          userMessage = "Invalid email or password. Please check your credentials."
+        } else if (error.message.includes("Email not confirmed")) {
+          userMessage = "Please verify your email address before signing in. Check your inbox."
+        } else if (error.message.includes("Too many requests")) {
+          userMessage = "Too many login attempts. Please try again later."
+        } else {
+          userMessage = error.message
+        }
+
         toast({
           title: "Sign in failed",
-          description: error.message || "Please check your credentials and try again.",
+          description: userMessage,
           variant: "destructive",
         })
         return
       }
 
-      if (data.user) {
-        console.log("Sign in successful, user:", data.user.id)
+      if (data.user && data.session) {
+        console.log("✅ Sign in successful, user:", data.user.id)
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
@@ -63,12 +84,19 @@ export default function LoginPage() {
 
         // Redirect to dashboard
         router.push("/dashboard")
+      } else {
+        console.error("❌ No user or session returned")
+        toast({
+          title: "Sign in failed",
+          description: "Unable to establish session. Please try again.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error("Unexpected login error:", error)
+      console.error("💥 Unexpected login error:", error)
       toast({
         title: "Something went wrong",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive",
       })
     } finally {
