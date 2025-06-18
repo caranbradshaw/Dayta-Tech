@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { signIn } from "@/lib/auth-utils"
+import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
@@ -35,31 +35,37 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const result = await signIn({
-        email: values.email,
+      console.log("Attempting to sign in with:", values.email)
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email.trim().toLowerCase(),
         password: values.password,
       })
 
-      if (result.success) {
+      console.log("Sign in response:", { data, error })
+
+      if (error) {
+        console.error("Sign in error:", error)
+        toast({
+          title: "Sign in failed",
+          description: error.message || "Please check your credentials and try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (data.user) {
+        console.log("Sign in successful, user:", data.user.id)
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
         })
 
-        // Redirect will be handled by the AuthProvider
-        // But we can also manually redirect after a short delay
-        setTimeout(() => {
-          router.push("/dashboard")
-        }, 1000)
-      } else {
-        toast({
-          title: "Sign in failed",
-          description: result.error || "Please check your credentials and try again.",
-          variant: "destructive",
-        })
+        // Redirect to dashboard
+        router.push("/dashboard")
       }
     } catch (error) {
-      console.error("Login error:", error)
+      console.error("Unexpected login error:", error)
       toast({
         title: "Something went wrong",
         description: "Please try again later.",
@@ -147,10 +153,6 @@ export default function LoginPage() {
           </Form>
 
           <div className="mt-6 text-center space-y-4">
-            <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500 font-medium">
-              Forgot your password?
-            </Link>
-
             <div className="text-sm text-gray-600">
               Don't have an account?{" "}
               <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">

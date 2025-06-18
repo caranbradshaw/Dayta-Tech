@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { signUp } from "@/lib/auth-utils"
+import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Loader2, Brain, Database, BarChart3, TrendingUp, Users, Zap } from "lucide-react"
 import Link from "next/link"
 
@@ -42,7 +42,6 @@ const industries = [
   { value: "other", label: "Other" },
 ]
 
-// Updated roles focused on the type of insights they want
 const insightRoles = [
   {
     value: "data-scientist",
@@ -104,33 +103,89 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      const result = await signUp({
-        firstName: values.firstName,
-        lastName: values.lastName,
-        email: values.email,
+      console.log("Attempting to sign up with:", values.email)
+
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: values.email.trim().toLowerCase(),
         password: values.password,
-        company: values.company,
-        industry: values.industry,
-        role: values.role, // This is now the insight type they want
+        options: {
+          data: {
+            first_name: values.firstName.trim(),
+            last_name: values.lastName.trim(),
+            full_name: `${values.firstName.trim()} ${values.lastName.trim()}`,
+          },
+        },
       })
 
-      if (result.success) {
-        toast({
-          title: "Account created successfully!",
-          description: result.message || "Please check your email to verify your account.",
-        })
+      console.log("Auth signup response:", { authData, authError })
 
-        // Redirect to verification page
-        router.push("/verify-email")
-      } else {
+      if (authError) {
+        console.error("Auth signup error:", authError)
         toast({
           title: "Sign up failed",
-          description: result.error || "Please try again with different credentials.",
+          description: authError.message || "Please try again with different credentials.",
           variant: "destructive",
         })
+        return
       }
+
+      if (!authData.user) {
+        toast({
+          title: "Sign up failed",
+          description: "Failed to create user account.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Create user profile
+      console.log("Creating user profile for:", authData.user.id)
+
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: authData.user.id,
+        email: values.email.trim().toLowerCase(),
+        name: `${values.firstName.trim()} ${values.lastName.trim()}`,
+        first_name: values.firstName.trim(),
+        last_name: values.lastName.trim(),
+        company: values.company?.trim() || null,
+        industry: values.industry.trim(),
+        role: values.role.trim(),
+        account_type: "trial_pro",
+        trial_status: "active",
+        trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        upload_credits: 100,
+        export_credits: 50,
+        features: {
+          advanced_insights: true,
+          all_file_formats: true,
+          priority_support: true,
+          api_access: true,
+          custom_reports: true,
+          data_export: true,
+        },
+        email_verified: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError)
+        // Don't fail signup if profile creation fails
+        console.warn("User account created but profile creation failed")
+      } else {
+        console.log("Profile created successfully")
+      }
+
+      toast({
+        title: "Account created successfully!",
+        description: "Please check your email to verify your account and start your 30-day Pro trial.",
+      })
+
+      // Redirect to dashboard (user will be signed in automatically)
+      router.push("/dashboard")
     } catch (error) {
-      console.error("Signup error:", error)
+      console.error("Unexpected signup error:", error)
       toast({
         title: "Something went wrong",
         description: "Please try again later.",
@@ -301,7 +356,6 @@ export default function SignupPage() {
                 )}
               />
 
-              {/* Preview of selected insight type */}
               {selectedRole && (
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <div className="flex items-center space-x-2 mb-2">
