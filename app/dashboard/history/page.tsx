@@ -57,7 +57,7 @@ export default function HistoryPage() {
   const fetchAnalyses = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/analyses/list")
+      const response = await fetch(`/api/ai/list?userId=${user?.id}`)
 
       if (!response.ok) {
         throw new Error("Failed to fetch analyses")

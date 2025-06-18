@@ -1,7 +1,222 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
-// Serverless-optimized data processor
+// Force Node.js runtime for file operations
+export const runtime = "nodejs"
+export const maxDuration = 30
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
+  try {
+    console.log("=== AI Analysis API Called ===")
+
+    // Parse form data
+    const formData = await request.formData()
+    const file = formData.get("file") as File
+    const userId = formData.get("userId") as string
+    const industry = (formData.get("industry") as string) || "general"
+    const role = (formData.get("role") as string) || "business_analyst"
+    const planType = (formData.get("planType") as string) || "basic"
+
+    console.log("Request parameters:", {
+      fileName: file?.name,
+      fileSize: file?.size,
+      fileType: file?.type,
+      userId,
+      industry,
+      role,
+      planType,
+    })
+
+    // Validate required parameters
+    if (!file || !userId) {
+      console.error("Missing required parameters")
+      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
+    }
+
+    // Check file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      console.error("File too large:", file.size)
+      return NextResponse.json({ error: "File size exceeds 50MB limit" }, { status: 413 })
+    }
+
+    // Step 1: Create analysis record
+    console.log("Creating analysis record...")
+    const { data: analysis, error: createError } = await supabase
+      .from("analyses")
+      .insert({
+        user_id: userId,
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        status: "processing",
+        analysis_role: role,
+        industry: industry,
+        processing_started_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (createError || !analysis) {
+      console.error("Failed to create analysis record:", createError)
+      return NextResponse.json({ error: "Failed to create analysis record" }, { status: 500 })
+    }
+
+    const analysisId = analysis.id
+    console.log("Analysis record created:", analysisId)
+
+    // Step 2: Create file upload record
+    try {
+      await supabase.from("file_uploads").insert({
+        user_id: userId,
+        analysis_id: analysisId,
+        file_name: file.name,
+        file_size: file.size,
+        file_type: file.type,
+        upload_status: "completed",
+        upload_completed_at: new Date().toISOString(),
+      })
+      console.log("File upload record created")
+    } catch (uploadError) {
+      console.warn("Failed to create file upload record:", uploadError)
+    }
+
+    // Step 3: Process file data
+    console.log("Processing file data...")
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    const processedData = await processFileBuffer(buffer, file.name, file.type)
+
+    console.log("File processed successfully:", {
+      rows: processedData.stats.rowCount,
+      columns: processedData.stats.columnCount,
+      quality: processedData.insights.dataQuality,
+    })
+
+    // Step 4: Perform AI analysis
+    console.log("Starting AI analysis...")
+    const analysisResult = await performAIAnalysis(processedData, file.name, {
+      industry,
+      role,
+      planType,
+      userId,
+    })
+
+    const processingTime = Date.now() - startTime
+    console.log("AI analysis completed:", {
+      aiProvider: analysisResult.aiProvider,
+      processingTime,
+      insightsCount: analysisResult.insights.length,
+      recommendationsCount: analysisResult.recommendations.length,
+    })
+
+    // Step 5: Update analysis record with results
+    const { error: updateError } = await supabase
+      .from("analyses")
+      .update({
+        status: "completed",
+        summary: analysisResult.summary,
+        insights: {
+          ai_insights: analysisResult.insights,
+          data_quality: processedData.insights.dataQuality,
+          processing_time_ms: processingTime,
+          ai_provider: analysisResult.aiProvider,
+          analysis_type: "standard",
+        },
+        recommendations: {
+          recommendations: analysisResult.recommendations,
+          generated_by: analysisResult.aiProvider,
+          generated_at: new Date().toISOString(),
+        },
+        processing_completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        metadata: {
+          industry,
+          role,
+          plan_type: planType,
+          file_size: file.size,
+          file_type: file.type,
+          processing_time_ms: processingTime,
+        },
+      })
+      .eq("id", analysisId)
+
+    if (updateError) {
+      console.error("Failed to update analysis record:", updateError)
+    }
+
+    // Step 6: Create report record
+    try {
+      const reportTitle = `${role.replace("_", " ").toUpperCase()} Analysis: ${file.name}`
+
+      await supabase.from("reports").insert({
+        user_id: userId,
+        analysis_id: analysisId,
+        title: reportTitle,
+        description: `AI-powered analysis report generated from ${file.name}`,
+        report_type: "analysis_report",
+        content: {
+          summary: analysisResult.summary,
+          insights: analysisResult.insights,
+          recommendations: analysisResult.recommendations,
+          data_quality: processedData.insights.dataQuality,
+          processing_time: processingTime,
+          ai_provider: analysisResult.aiProvider,
+        },
+        summary: analysisResult.summary,
+        insights: analysisResult.insights,
+        recommendations: analysisResult.recommendations.map((rec: any) => ({
+          title: rec.title,
+          description: rec.description,
+          impact: rec.impact,
+          effort: rec.effort,
+          category: rec.category,
+        })),
+        file_name: file.name,
+        analysis_role: role,
+        industry: industry,
+        status: "generated",
+        created_at: new Date().toISOString(),
+      })
+
+      console.log("Report created successfully")
+    } catch (reportError) {
+      console.warn("Failed to create report:", reportError)
+    }
+
+    console.log(`=== Analysis completed successfully in ${processingTime}ms ===`)
+
+    return NextResponse.json({
+      success: true,
+      analysisId,
+      summary: analysisResult.summary,
+      insights: analysisResult.insights,
+      recommendations: analysisResult.recommendations,
+      dataQuality: processedData.insights.dataQuality,
+      processingTime,
+      aiProvider: analysisResult.aiProvider,
+      message: "Analysis completed successfully",
+    })
+  } catch (error) {
+    const processingTime = Date.now() - startTime
+    console.error("=== AI analysis error ===", error)
+
+    return NextResponse.json(
+      {
+        error: "Analysis failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+        message: "The analysis could not be completed. Please try again.",
+        processingTime,
+      },
+      { status: 500 },
+    )
+  }
+}
+
+// File processing function (same as before)
 async function processFileBuffer(
   buffer: Buffer,
   fileName: string,
@@ -48,6 +263,14 @@ async function processFileBuffer(
           })
           return row
         })
+      }
+    } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+      // For Excel files, we'll treat them as CSV for now
+      // In production, you'd use a library like 'xlsx' to parse Excel files
+      const lines = fileContent.split("\n").filter((line) => line.trim())
+      if (lines.length > 0) {
+        columns = ["data"]
+        data = lines.map((line, index) => ({ data: line, row_number: index + 1 }))
       }
     } else {
       // Handle as text file
@@ -136,7 +359,7 @@ async function processFileBuffer(
   }
 }
 
-// Serverless-optimized AI analysis
+// AI analysis function (same as before)
 async function performAIAnalysis(
   processedData: any,
   fileName: string,
@@ -264,267 +487,3 @@ Return JSON with:
     aiProvider: "fallback",
   }
 }
-
-export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-
-  try {
-    console.log("=== AI Analysis API Called ===")
-
-    // Parse form data properly for serverless
-    const formData = await request.formData()
-    const file = formData.get("file") as File
-    const userId = formData.get("userId") as string
-    const analysisId = formData.get("analysisId") as string
-    const industry = (formData.get("industry") as string) || "general"
-    const role = (formData.get("role") as string) || "business_analyst"
-    const planType = (formData.get("planType") as string) || "basic"
-
-    console.log("Request parameters:", {
-      fileName: file?.name,
-      fileSize: file?.size,
-      fileType: file?.type,
-      userId,
-      analysisId,
-      industry,
-      role,
-      planType,
-    })
-
-    // Validate required parameters
-    if (!file || !userId || !analysisId) {
-      console.error("Missing required parameters")
-      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
-    }
-
-    // Check file size (Vercel limit: 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      console.error("File too large:", file.size)
-      return NextResponse.json({ error: "File size exceeds 50MB limit" }, { status: 413 })
-    }
-
-    // Update status to processing
-    try {
-      await supabase
-        .from("analyses")
-        .update({
-          status: "processing",
-          processing_started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", analysisId)
-      console.log("Status updated to processing")
-    } catch (statusError) {
-      console.warn("Failed to update status:", statusError)
-    }
-
-    // Convert File to Buffer immediately (critical for serverless)
-    console.log("Converting file to buffer...")
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    console.log("File converted to buffer, size:", buffer.length)
-
-    // Process file data synchronously
-    console.log("Processing file data...")
-    const processedData = await processFileBuffer(buffer, file.name, file.type)
-    console.log("File processed successfully:", {
-      rows: processedData.stats.rowCount,
-      columns: processedData.stats.columnCount,
-      quality: processedData.insights.dataQuality,
-    })
-
-    // Perform AI analysis
-    console.log("Starting AI analysis...")
-    const analysisResult = await performAIAnalysis(processedData, file.name, {
-      industry,
-      role,
-      planType,
-      userId,
-    })
-
-    const processingTime = Date.now() - startTime
-    console.log("AI analysis completed:", {
-      aiProvider: analysisResult.aiProvider,
-      processingTime,
-      insightsCount: analysisResult.insights.length,
-      recommendationsCount: analysisResult.recommendations.length,
-    })
-
-    // Enhance results
-    const enhancedInsights = analysisResult.insights.map((insight) => ({
-      ...insight,
-      ai_model: "DaytaTech AI Engine v2.1",
-      processing_time_ms: processingTime,
-      metadata: {
-        ...insight.metadata,
-        data_rows: processedData.stats.rowCount,
-        data_columns: processedData.stats.columnCount,
-        data_quality: processedData.insights.dataQuality,
-      },
-    }))
-
-    const enhancedRecommendations = analysisResult.recommendations.map((rec) => ({
-      ...rec,
-      id: rec.id || `rec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      details: rec.details || `Recommendation for ${industry} based on data analysis.`,
-      actionSteps: rec.actionSteps || [
-        "Review recommendation details",
-        "Assess implementation requirements",
-        "Create action plan",
-        "Monitor results",
-      ],
-    }))
-
-    // Update analysis record with results
-    try {
-      await supabase
-        .from("analyses")
-        .update({
-          status: "completed",
-          summary: analysisResult.summary,
-          insights: {
-            ai_insights: enhancedInsights,
-            data_quality: processedData.insights.dataQuality,
-            processing_time_ms: processingTime,
-            ai_provider: analysisResult.aiProvider,
-            analysis_type: "standard",
-          },
-          recommendations: {
-            recommendations: enhancedRecommendations,
-            generated_by: analysisResult.aiProvider,
-            generated_at: new Date().toISOString(),
-          },
-          processing_completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          metadata: {
-            industry,
-            role,
-            plan_type: planType,
-            file_size: file.size,
-            file_type: file.type,
-            processing_time_ms: processingTime,
-          },
-        })
-        .eq("id", analysisId)
-      console.log("Analysis record updated successfully")
-    } catch (updateError) {
-      console.error("Failed to update analysis record:", updateError)
-    }
-
-    // Create insight records
-    if (enhancedInsights.length > 0) {
-      try {
-        const insightRecords = enhancedInsights.map((insight) => ({
-          analysis_id: analysisId,
-          project_id: analysisId,
-          type: insight.type || "general",
-          title: insight.title || "Analysis Insight",
-          content: insight.content || "No content available",
-          confidence_score: insight.confidence_score || 0.8,
-          metadata: insight.metadata || {},
-          ai_model: insight.ai_model || analysisResult.aiProvider,
-          processing_time_ms: processingTime,
-          created_at: new Date().toISOString(),
-        }))
-
-        await supabase.from("insights").insert(insightRecords)
-        console.log("Insights inserted successfully:", insightRecords.length)
-      } catch (insightsError) {
-        console.warn("Failed to insert insights:", insightsError)
-      }
-    }
-
-    // Create report
-    try {
-      const reportTitle = `${role.toUpperCase()} Analysis: ${file.name}`
-
-      await supabase.from("reports").insert({
-        user_id: userId,
-        analysis_id: analysisId,
-        title: reportTitle,
-        description: `AI-powered analysis report generated from ${file.name}`,
-        report_type: "analysis_report",
-        content: {
-          summary: analysisResult.summary,
-          insights: enhancedInsights,
-          recommendations: enhancedRecommendations,
-          data_quality: processedData.insights.dataQuality,
-          processing_time: processingTime,
-          ai_provider: analysisResult.aiProvider,
-        },
-        summary: analysisResult.summary,
-        insights: enhancedInsights,
-        recommendations: enhancedRecommendations.map((rec) => ({
-          title: rec.title,
-          description: rec.description,
-          impact: rec.impact,
-          effort: rec.effort,
-          category: rec.category,
-        })),
-        file_name: file.name,
-        analysis_role: role,
-        industry: industry,
-        status: "generated",
-        created_at: new Date().toISOString(),
-      })
-
-      console.log("Report created successfully")
-    } catch (reportError) {
-      console.warn("Failed to create report:", reportError)
-    }
-
-    console.log(`=== Analysis completed successfully in ${processingTime}ms ===`)
-
-    return NextResponse.json({
-      success: true,
-      analysisId,
-      summary: analysisResult.summary,
-      insights: enhancedInsights,
-      recommendations: enhancedRecommendations,
-      dataQuality: processedData.insights.dataQuality,
-      processingTime,
-      aiProvider: analysisResult.aiProvider,
-      message: "Analysis completed successfully",
-    })
-  } catch (error) {
-    const processingTime = Date.now() - startTime
-    console.error("=== AI analysis error ===", error)
-
-    // Update analysis with error status
-    try {
-      const formData = await request.formData()
-      const analysisId = formData.get("analysisId") as string
-      if (analysisId) {
-        await supabase
-          .from("analyses")
-          .update({
-            status: "failed",
-            error_message: error instanceof Error ? error.message : "Analysis failed",
-            processing_completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            metadata: {
-              processing_time_ms: processingTime,
-              error_type: "serverless_error",
-            },
-          })
-          .eq("id", analysisId)
-      }
-    } catch (updateError) {
-      console.error("Failed to update error status:", updateError)
-    }
-
-    return NextResponse.json(
-      {
-        error: "Analysis failed",
-        details: error instanceof Error ? error.message : "Unknown error",
-        message: "The analysis could not be completed. Please try again.",
-        processingTime,
-      },
-      { status: 500 },
-    )
-  }
-}
-
-// Add runtime config for Vercel
-export const runtime = "nodejs"
-export const maxDuration = 30 // 30 seconds max (Vercel Pro limit)

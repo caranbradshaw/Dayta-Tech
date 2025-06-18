@@ -7,8 +7,7 @@ import { useAuth } from "@/components/auth-context"
 import { FileUploader } from "@/components/file-uploader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, BarChart3, FileText, TrendingUp } from 'lucide-react'
-import { clientStorage } from "@/lib/client-storage"
+import { Upload, BarChart3, FileText, TrendingUp } from "lucide-react"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -24,17 +23,18 @@ export default function DashboardPage() {
   }, [user])
 
   const fetchRecentAnalyses = async () => {
+    if (!user?.id) return
+
     try {
-      const response = await fetch(`/api/analyses/list?userId=${user?.id}`)
+      const response = await fetch(`/api/ai/list?userId=${user.id}`)
       if (response.ok) {
         const data = await response.json()
-        setRecentAnalyses(data.analyses.slice(0, 3)) // Show last 3
+        setRecentAnalyses(data.analyses.slice(0, 3))
       }
     } catch (error) {
       console.error("Error fetching analyses:", error)
-      // Fallback to client storage if database fails
-      const analyses = clientStorage.getAnalysesByUser(user.id)
-      setRecentAnalyses(analyses.slice(0, 3))
+      // Show user-friendly error message
+      setRecentAnalyses([])
     }
   }
 
@@ -153,23 +153,30 @@ export default function DashboardPage() {
                           <p className="font-medium">{analysis.file_name}</p>
                           <p className="text-sm text-gray-500">
                             {new Date(analysis.created_at).toLocaleDateString()} •
-                            <span className={`ml-1 px-2 py-1 rounded text-xs ${
-                              analysis.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              analysis.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
+                            <span
+                              className={`ml-1 px-2 py-1 rounded text-xs ${
+                                analysis.status === "completed"
+                                  ? "bg-green-100 text-green-800"
+                                  : analysis.status === "processing"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                              }`}
+                            >
                               {analysis.status.toUpperCase()}
                             </span>
                           </p>
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => router.push(`/analysis/${analysis.id}`)}
-                        disabled={analysis.status !== 'completed'}
+                        disabled={analysis.status !== "completed"}
                       >
-                        {analysis.status === 'completed' ? 'View Results' : 
-                         analysis.status === 'processing' ? 'Processing...' : 'Failed'}
+                        {analysis.status === "completed"
+                          ? "View Results"
+                          : analysis.status === "processing"
+                            ? "Processing..."
+                            : "Failed"}
                       </Button>
                     </div>
                   ))}

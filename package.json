@@ -2,17 +2,12 @@
   "name": "daytatech-saas",
   "version": "2.1.0",
   "private": true,
-  "packageManager": "npm@10.0.0",
-  "engines": {
-    "node": "18.x",
-    "npm": ">=8.0.0"
-  },
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "clean": "rm -rf .next node_modules package-lock.json",
+    "dev": "next dev",
     "lint": "next lint",
-    "clean": "rm -rf .next node_modules package-lock.json"
+    "start": "next start"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "0.0.39",
@@ -74,6 +69,7 @@
     "react-chartjs-2": "5.2.0",
     "react-day-picker": "latest",
     "react-dom": "^19",
+    "react-dropzone": "latest",
     "react-hook-form": "latest",
     "react-resizable-panels": "2.1.7",
     "recharts": "2.15.0",
@@ -96,5 +92,10 @@
     "postcss": "^8.5",
     "tailwindcss": "3.4.17",
     "typescript": "^5"
+  },
+  "packageManager": "npm@10.0.0",
+  "engines": {
+    "node": "18.x",
+    "npm": ">=8.0.0"
   }
 }

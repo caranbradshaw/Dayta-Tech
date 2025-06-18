@@ -1,57 +1,140 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { supabase } from "@/lib/supabase"
+import type { User } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
+import { getUserProfile } from "@/lib/supabase-utils"
 
-interface User {
+type UserProfile = {
   id: string
   email: string
-  name: string
-  role: string
+  name?: string
+  company?: string
+  industry?: string
+  role?: string
+  account_type: string
+  trial_status: string
+  trial_end_date?: string
+  upload_credits: number
+  export_credits: number
+  features: Record<string, any>
+  created_at: string
+  updated_at: string
 }
 
-interface AuthContextType {
+type AuthContextType = {
   user: User | null
-  login: (user: User) => void
-  logout: () => void
-  isLoading: boolean
+  profile: UserProfile | null
+  loading: boolean
+  signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  profile: null,
+  loading: true,
+  signOut: async () => {},
+  refreshProfile: async () => {},
+})
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem("dayta-user")
-    if (storedUser) {
+    // Check for current session
+    const checkUser = async () => {
       try {
-        setUser(JSON.parse(storedUser))
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        setUser(session?.user || null)
+
+        if (session?.user) {
+          await loadUserProfile(session.user.id)
+        }
       } catch (error) {
-        console.error("Error parsing stored user:", error)
-        localStorage.removeItem("dayta-user")
+        console.error("Error checking user session:", error)
+      } finally {
+        setLoading(false)
       }
     }
-    setIsLoading(false)
-  }, [])
 
-  const login = (userData: User) => {
-    setUser(userData)
-    localStorage.setItem("dayta-user", JSON.stringify(userData))
+    checkUser()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user || null)
+
+      if (session?.user) {
+        await loadUserProfile(session.user.id)
+      } else {
+        setProfile(null)
+      }
+
+      setLoading(false)
+
+      if (event === "SIGNED_IN") {
+        router.push("/dashboard")
+      } else if (event === "SIGNED_OUT") {
+        router.push("/")
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router])
+
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const userProfile = await getUserProfile(userId)
+      setProfile(userProfile)
+    } catch (error) {
+      console.error("Error loading user profile:", error)
+    }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("dayta-user")
+  const refreshProfile = async () => {
+    if (user) {
+      await loadUserProfile(user.id)
+    }
   }
 
-  return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      setProfile(null)
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signOut: handleSignOut,
+        refreshProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context

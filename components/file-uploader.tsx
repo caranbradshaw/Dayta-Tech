@@ -1,113 +1,139 @@
 "use client"
 
-import type React from "react"
-import { useState, useCallback, useRef } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useCallback } from "react"
+import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
-import { Upload, FileText, Loader2, X, Info } from "lucide-react"
-import { RoleSelector, type AnalysisRole } from "@/components/role-selector"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { useToast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/components/auth-context"
 import { useRouter } from "next/navigation"
+import { Upload, AlertCircle, CheckCircle, Zap, Crown, Sparkles } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface FileUploaderProps {
-  accountType?: string
-  uploadCredits?: number
-  exportCredits?: number
-  userRole?: string
-  disabled?: boolean
-  isPremium?: boolean
   onUploadStart?: (fileName: string, fileSize: number) => Promise<void>
   onUploadComplete?: (fileName: string, fileSize: number, analysisId: string) => Promise<void>
   onUploadError?: (fileName: string, error: string) => Promise<void>
 }
 
-export function FileUploader({
-  accountType = "basic",
-  uploadCredits = 10,
-  exportCredits = 0,
-  userRole,
-  disabled = false,
-  isPremium = false,
-  onUploadStart,
-  onUploadComplete,
-  onUploadError,
-}: FileUploaderProps) {
+export function FileUploader({ onUploadStart, onUploadComplete, onUploadError }: FileUploaderProps) {
   const [uploading, setUploading] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [dragActive, setDragActive] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [analysisProgress, setAnalysisProgress] = useState(0)
-  const [analysisRole, setAnalysisRole] = useState<AnalysisRole>("business_analyst")
-  const [analysisStage, setAnalysisStage] = useState<string>("")
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const progressInterval = useRef<NodeJS.Timeout | null>(null)
-  const { toast } = useToast()
+  const [error, setError] = useState<string | null>(null)
+  const { user, profile, refreshProfile } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
 
-  const handleFiles = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return
+  // Check if user can upload based on their plan and usage
+  const canUpload = () => {
+    if (!profile) return false
 
-      const file = files[0]
+    // Check if user has upload credits
+    if (profile.account_type === "basic" && profile.upload_credits <= 0) {
+      return false
+    }
+
+    return true
+  }
+
+  const getUploadLimitMessage = () => {
+    if (!profile) return "Please log in to upload files"
+
+    if (profile.account_type === "basic") {
+      return `${profile.upload_credits} uploads remaining this month`
+    }
+
+    return "Unlimited uploads"
+  }
+
+  const getSupportedFormats = () => {
+    if (!profile) return ["csv", "xlsx", "xls", "json"]
+
+    // Pro and higher get all formats
+    if (profile.account_type !== "basic") {
+      return ["csv", "xlsx", "xls", "json", "txt", "xml", "parquet"]
+    }
+
+    return ["csv", "xlsx", "xls", "json"]
+  }
+
+  const getMaxFileSize = () => {
+    if (!profile) return 10 // 10MB for non-authenticated
+
+    switch (profile.account_type) {
+      case "basic":
+        return 10 // 10MB
+      case "pro":
+        return 100 // 100MB
+      case "team":
+        return 500 // 500MB
+      case "enterprise":
+        return 1000 // 1GB
+      default:
+        return 10
+    }
+  }
+
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (!user || !profile) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to upload files.",
+          variant: "destructive",
+        })
+        router.push("/login")
+        return
+      }
+
+      if (!canUpload()) {
+        toast({
+          title: "Upload Limit Reached",
+          description: "You've reached your monthly upload limit. Upgrade to Pro for unlimited uploads.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const file = acceptedFiles[0]
       if (!file) return
 
-      // Check file type
-      const allowedTypes = [
-        "text/csv",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/json",
-        "text/plain",
-      ]
-
-      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(csv|xlsx?|json|txt)$/i)) {
-        toast({
-          title: "Invalid File Type",
-          description: "Please upload a CSV, Excel, JSON, or text file.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Check file size (50MB limit)
-      const maxSize = 50 * 1024 * 1024
+      // Check file size
+      const maxSize = getMaxFileSize() * 1024 * 1024 // Convert to bytes
       if (file.size > maxSize) {
-        toast({
-          title: "File Too Large",
-          description: "File size must be less than 50MB.",
-          variant: "destructive",
-        })
+        setError(`File size exceeds ${getMaxFileSize()}MB limit for your plan`)
         return
       }
 
-      setUploading(true)
+      // Check file type
+      const supportedFormats = getSupportedFormats()
+      const fileExtension = file.name.split(".").pop()?.toLowerCase()
+      if (!fileExtension || !supportedFormats.includes(fileExtension)) {
+        setError(`File type .${fileExtension} is not supported for your plan`)
+        return
+      }
+
+      setError(null)
       setUploadedFile(file)
-      setUploadProgress(0)
-      setAnalysisProgress(0)
-      setAnalysisStage("Preparing upload")
+      setUploading(true)
+      setProgress(0)
 
       try {
-        // Call upload start callback
-        if (onUploadStart) {
-          await onUploadStart(file.name, file.size)
-        }
+        await onUploadStart?.(file.name, file.size)
 
-        // Step 1: Create analysis record
-        setAnalysisStage("Creating analysis record")
+        // Create analysis record first
         const analysisResponse = await fetch("/api/analyses/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: user.id,
             fileName: file.name,
+            fileType: fileExtension,
             fileSize: file.size,
-            fileType: file.type,
-            userId: "current-user", // Replace with actual user ID
-            industry: "general",
-            role: analysisRole,
-            goals: [],
           }),
         })
 
@@ -116,75 +142,61 @@ export function FileUploader({
         }
 
         const { analysisId } = await analysisResponse.json()
-        setUploadProgress(25)
+        setProgress(25)
 
-        // Step 2: Upload file
-        setAnalysisStage("Uploading file")
-        const uploadFormData = new FormData()
-        uploadFormData.append("file", file)
-        uploadFormData.append("analysisId", analysisId)
-        uploadFormData.append("userId", "current-user")
+        // Upload file to Vercel Blob
+        const formData = new FormData()
+        formData.append("file", file)
+        formData.append("analysisId", analysisId)
+        formData.append("userId", user.id)
 
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
-          body: uploadFormData,
+          body: formData,
         })
 
         if (!uploadResponse.ok) {
-          console.warn("File upload failed, continuing with analysis")
+          throw new Error("File upload failed")
         }
 
-        setUploadProgress(50)
+        const uploadResult = await uploadResponse.json()
+        setProgress(50)
 
-        // Step 3: AI Analysis
-        setAnalysisStage("Starting AI analysis")
-        const aiFormData = new FormData()
-        aiFormData.append("file", file)
-        aiFormData.append("userId", "current-user")
-        aiFormData.append("analysisId", analysisId)
-        aiFormData.append("industry", "general")
-        aiFormData.append("role", analysisRole)
-        aiFormData.append("planType", isPremium ? "pro" : "basic")
+        // Start AI analysis
+        setUploading(false)
+        setAnalyzing(true)
 
-        setUploadProgress(75)
-        setAnalysisStage("Processing with AI")
-
-        // Simulate analysis progress
-        progressInterval.current = setInterval(() => {
-          setAnalysisProgress((prev) => {
-            if (prev >= 90) {
-              if (progressInterval.current) clearInterval(progressInterval.current)
-              return 90
-            }
-            return prev + 2
-          })
-        }, 200)
-
-        const aiResponse = await fetch("/api/ai/analyze", {
+        const analysisResponse2 = await fetch("/api/ai/analyze", {
           method: "POST",
-          body: aiFormData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            analysisId,
+            fileUrl: uploadResult.url,
+            fileName: file.name,
+            userId: user.id,
+            userContext: {
+              company: profile.company,
+              industry: profile.industry,
+              role: profile.role,
+              accountType: profile.account_type,
+            },
+          }),
         })
 
-        if (progressInterval.current) clearInterval(progressInterval.current)
-
-        if (!aiResponse.ok) {
-          const errorData = await aiResponse.json()
-          throw new Error(errorData.details || "AI analysis failed")
+        if (!analysisResponse2.ok) {
+          throw new Error("Analysis failed")
         }
 
-        const aiResult = await aiResponse.json()
-        setUploadProgress(100)
-        setAnalysisProgress(100)
-        setAnalysisStage("Analysis complete")
+        setProgress(100)
 
-        // Call upload complete callback
-        if (onUploadComplete) {
-          await onUploadComplete(file.name, file.size, analysisId)
-        }
+        // Refresh user profile to update credits
+        await refreshProfile()
+
+        await onUploadComplete?.(file.name, file.size, analysisId)
 
         toast({
           title: "Analysis Complete!",
-          description: `Your ${file.name} has been successfully analyzed.`,
+          description: "Your file has been analyzed successfully.",
         })
 
         // Redirect to analysis results
@@ -192,216 +204,176 @@ export function FileUploader({
       } catch (error) {
         console.error("Upload/Analysis error:", error)
         const errorMessage = error instanceof Error ? error.message : "Upload failed"
-
-        if (onUploadError) {
-          await onUploadError(file.name, errorMessage)
-        }
+        setError(errorMessage)
+        await onUploadError?.(file.name, errorMessage)
 
         toast({
-          title: "Analysis Failed",
+          title: "Upload Failed",
           description: errorMessage,
           variant: "destructive",
         })
       } finally {
-        if (progressInterval.current) clearInterval(progressInterval.current)
         setUploading(false)
+        setAnalyzing(false)
+        setProgress(0)
       }
     },
-    [onUploadStart, onUploadComplete, onUploadError, analysisRole, isPremium, toast, router],
+    [user, profile, onUploadStart, onUploadComplete, onUploadError, router, toast, refreshProfile],
   )
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setDragActive(false)
-
-      if (disabled || uploading) return
-
-      handleFiles(e.dataTransfer.files)
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "text/csv": [".csv"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.ms-excel": [".xls"],
+      "application/json": [".json"],
+      "text/plain": [".txt"],
+      "application/xml": [".xml"],
+      "application/octet-stream": [".parquet"],
     },
-    [disabled, uploading, handleFiles],
-  )
+    multiple: false,
+    disabled: uploading || analyzing || !canUpload(),
+  })
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!disabled && !uploading) {
-        setDragActive(true)
-      }
-    },
-    [disabled, uploading],
-  )
+  const getPlanBadge = () => {
+    if (!profile) return null
 
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-  }, [])
-
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      handleFiles(e.target.files)
-    },
-    [handleFiles],
-  )
-
-  const handleClick = useCallback(() => {
-    if (!disabled && !uploading) {
-      fileInputRef.current?.click()
+    switch (profile.account_type) {
+      case "basic":
+        return <Badge variant="secondary">Basic Plan</Badge>
+      case "pro":
+        return (
+          <Badge className="bg-purple-100 text-purple-800">
+            <Crown className="h-3 w-3 mr-1" />
+            Pro Plan
+          </Badge>
+        )
+      case "team":
+        return (
+          <Badge className="bg-blue-100 text-blue-800">
+            <Sparkles className="h-3 w-3 mr-1" />
+            Team Plan
+          </Badge>
+        )
+      case "enterprise":
+        return (
+          <Badge className="bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800">
+            <Zap className="h-3 w-3 mr-1" />
+            Enterprise
+          </Badge>
+        )
+      default:
+        return null
     }
-  }, [disabled, uploading])
+  }
 
-  const handleRemoveFile = useCallback(() => {
-    setUploadedFile(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-  }, [])
+  if (!user) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Upload className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Sign In Required</h3>
+          <p className="text-gray-600 mb-4">Please sign in to upload and analyze your data files.</p>
+          <Button onClick={() => router.push("/login")}>Sign In to Upload</Button>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="space-y-4">
+      {/* Plan Info */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {getPlanBadge()}
+          <span className="text-sm text-gray-600">{getUploadLimitMessage()}</span>
+        </div>
+        {profile?.account_type === "basic" && (
+          <Button variant="outline" size="sm" onClick={() => router.push("/pricing")}>
+            Upgrade Plan
+          </Button>
+        )}
+      </div>
+
       <Card>
-        <CardContent className="p-6 space-y-6">
-          {isPremium && (
-            <RoleSelector selectedRole={analysisRole} onChange={setAnalysisRole} isPremium={true} className="mb-4" />
-          )}
-
+        <CardContent className="p-8">
           <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={handleClick}
+            {...getRootProps()}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-            } ${disabled || uploading ? "cursor-not-allowed opacity-50" : ""}`}
+              isDragActive
+                ? "border-blue-500 bg-blue-50"
+                : canUpload()
+                  ? "border-gray-300 hover:border-gray-400"
+                  : "border-gray-200 bg-gray-50 cursor-not-allowed"
+            }`}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.xlsx,.xls,.json,.txt"
-              onChange={handleFileInputChange}
-              className="hidden"
-              disabled={disabled || uploading}
-            />
+            <input {...getInputProps()} />
 
-            {uploading ? (
-              <div className="space-y-6">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="relative h-16 w-16">
-                    <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-medium text-blue-600">
-                        {uploadProgress === 100 ? analysisProgress : uploadProgress}%
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Processing {uploadedFile?.name}</h3>
-                    <p className="text-gray-500">{analysisStage}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 w-full max-w-md mx-auto">
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Upload</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <Progress value={uploadProgress} className="h-1" />
-
-                  {uploadProgress === 100 && (
-                    <>
-                      <div className="flex justify-between text-xs text-gray-500 mt-4">
-                        <span>Analysis</span>
-                        <span>{analysisProgress}%</span>
-                      </div>
-                      <Progress value={analysisProgress} className="h-1" />
-                    </>
-                  )}
-                </div>
-
-                {isPremium && (
-                  <div className="mt-4 text-sm">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      {analysisRole.replace("_", " ")} Analysis
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            ) : uploadedFile ? (
+            {uploading || analyzing ? (
               <div className="space-y-4">
-                <FileText className="h-12 w-12 mx-auto text-blue-600" />
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                 <div>
-                  <h3 className="text-lg font-semibold">{uploadedFile.name}</h3>
-                  <p className="text-gray-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-lg font-medium">{uploading ? "Uploading..." : "Analyzing with AI..."}</p>
+                  <Progress value={progress} className="mt-2" />
+                  <p className="text-sm text-gray-500 mt-1">
+                    {uploading ? "Uploading your file securely" : "AI is analyzing your data"}
+                  </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleRemoveFile()
-                  }}
-                  disabled={uploading}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Remove File
-                </Button>
               </div>
             ) : (
               <div className="space-y-4">
-                <Upload className="h-12 w-12 mx-auto text-gray-400" />
+                <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                 <div>
-                  <h3 className="text-lg font-semibold">
-                    {dragActive ? "Drop your file here" : "Upload your data file"}
-                  </h3>
-                  <p className="text-gray-500">
-                    {disabled ? "Upload limit reached" : "Drag and drop or click to select files"}
+                  <p className="text-lg font-medium">
+                    {isDragActive ? "Drop your file here" : "Upload your data file"}
                   </p>
+                  <p className="text-gray-500">Drag and drop or click to select • Max {getMaxFileSize()}MB</p>
                 </div>
-                <Button variant="outline" onClick={handleClick} disabled={disabled || uploading}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Choose File
-                </Button>
+
+                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                  {getSupportedFormats().map((format) => (
+                    <Badge key={format} variant="outline" className="text-xs">
+                      .{format.toUpperCase()}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {!disabled && (
-            <div className="mt-4 text-sm text-gray-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p>Supported formats: CSV, Excel (.xlsx, .xls), JSON, Text</p>
-                  <p>Maximum file size: 50MB</p>
-                  {uploadCredits !== undefined && <p>Remaining uploads: {uploadCredits}</p>}
-                </div>
+          {error && (
+            <Alert className="mt-4" variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-                {isPremium && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center text-blue-600 cursor-help">
-                          <Info className="h-4 w-4 mr-1" />
-                          <span className="text-xs">Premium Analysis</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>
-                          Your premium membership enables specialized analysis perspectives, deeper insights, and
-                          comprehensive reports.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+          {uploadedFile && !error && (
+            <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-green-800">
+                  {uploadedFile.name} ({Math.round(uploadedFile.size / 1024)} KB)
+                </span>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {!canUpload() && profile?.account_type === "basic" && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You've reached your monthly upload limit.
+            <Button variant="link" className="p-0 h-auto ml-1" onClick={() => router.push("/pricing")}>
+              Upgrade to Pro
+            </Button>{" "}
+            for unlimited uploads.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }
-
-export default FileUploader

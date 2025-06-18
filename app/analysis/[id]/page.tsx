@@ -2,60 +2,70 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Share2, TrendingUp, BarChart3, FileText, CheckCircle, AlertCircle, Clock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { AnalysisExportDialog } from "@/components/analysis-export-dialog"
 import { useAuth } from "@/components/auth-context"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
+import {
+  FileText,
+  BarChart3,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Lightbulb,
+  Target,
+  Building,
+  Calendar,
+  FileSpreadsheet,
+  Presentation,
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface AnalysisData {
+interface Analysis {
   id: string
   file_name: string
+  file_type: string
   status: "processing" | "completed" | "failed"
   summary?: string
   insights: any
-  recommendations: any
   created_at: string
   updated_at: string
   processing_completed_at?: string
-  metadata?: any
-  error_message?: string
+  user_id: string
 }
 
 export default function AnalysisPage() {
-  const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
+  const { id: analysisId } = useParams()
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const params = useParams()
+  const [exporting, setExporting] = useState(false)
+  const { user, profile } = useAuth()
   const router = useRouter()
-  const { user } = useAuth()
   const { toast } = useToast()
 
   useEffect(() => {
-    if (!params.id || !user) return
-
-    fetchAnalysis()
-  }, [params.id, user])
+    if (analysisId && user) {
+      fetchAnalysis()
+    }
+  }, [analysisId, user])
 
   const fetchAnalysis = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/analysis/${params.id}`)
+      const response = await fetch(`/api/analysis/${analysisId}`)
 
       if (!response.ok) {
-        throw new Error("Failed to fetch analysis")
+        throw new Error("Analysis not found")
       }
 
       const data = await response.json()
       setAnalysis(data.analysis)
-    } catch (err) {
-      console.error("Error fetching analysis:", err)
-      setError(err instanceof Error ? err.message : "Failed to load analysis")
+    } catch (error) {
+      console.error("Error fetching analysis:", error)
       toast({
         title: "Error",
         description: "Failed to load analysis. Please try again.",
@@ -66,51 +76,66 @@ export default function AnalysisPage() {
     }
   }
 
-  const handleShare = () => {
-    if (!analysis) return
-
-    const shareUrl = window.location.href
-    navigator.clipboard.writeText(shareUrl).then(() => {
+  const handleExport = async (format: string) => {
+    if (!profile) {
       toast({
-        title: "Link Copied",
-        description: "Analysis link has been copied to your clipboard.",
+        title: "Authentication Required",
+        description: "Please log in to export reports.",
+        variant: "destructive",
       })
-    })
-  }
+      return
+    }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <DashboardHeader />
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading analysis...</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    )
-  }
+    // Check export credits for basic users
+    if (profile.account_type === "basic" && profile.export_credits <= 0) {
+      toast({
+        title: "Export Limit Reached",
+        description: "You've reached your monthly export limit. Upgrade to Pro for unlimited exports.",
+        variant: "destructive",
+      })
+      return
+    }
 
-  if (error || !analysis) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <DashboardHeader />
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Analysis Not Found</h1>
-            <p className="text-gray-600 mb-6">{error || "The requested analysis could not be found."}</p>
-            <Button onClick={() => router.push("/dashboard")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </div>
-        </main>
-      </div>
-    )
+    try {
+      setExporting(true)
+      const response = await fetch(`/api/analysis/${analysisId}/export`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ format }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Export failed")
+      }
+
+      // Create download link
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.style.display = "none"
+      a.href = url
+      a.download = `analysis_${format}_${Date.now()}.${format === "excel" ? "csv" : format === "word" ? "doc" : format}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: "Export Successful",
+        description: `Your analysis has been exported as ${format.toUpperCase()}.`,
+      })
+    } catch (error) {
+      console.error("Export error:", error)
+      toast({
+        title: "Export Failed",
+        description: "Failed to export analysis. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setExporting(false)
+    }
   }
 
   const getStatusIcon = (status: string) => {
@@ -139,12 +164,48 @@ export default function AnalysisPage() {
     }
   }
 
-  // Parse insights and recommendations safely
-  const insights = analysis.insights?.ai_insights || analysis.insights?.detailed_insights || []
-  const recommendations =
-    analysis.recommendations?.recommendations || analysis.recommendations?.strategic_recommendations || []
-  const executiveSummary = analysis.insights?.executive_summary || {}
-  const dataQuality = analysis.insights?.data_quality_report || analysis.insights?.data_quality || {}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading analysis...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (!analysis) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader />
+        <main className="container mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="p-12 text-center">
+              <AlertCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Analysis Not Found</h3>
+              <p className="text-gray-600 mb-6">
+                The analysis you're looking for doesn't exist or you don't have access to it.
+              </p>
+              <Button onClick={() => router.push("/dashboard")}>Back to Dashboard</Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    )
+  }
+
+  const insights = analysis.insights || {}
+  const executiveSummary = insights.executive_summary || {}
+  const detailedInsights = insights.detailed_insights || []
+  const roleRecommendations = insights.role_recommendations || []
+  const dataQuality = insights.data_quality_report || {}
+  const userContext = insights.user_context || {}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -153,287 +214,226 @@ export default function AnalysisPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-              </Button>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{analysis.file_name}</h1>
-                <p className="text-gray-600">
-                  Analyzed on {new Date(analysis.created_at).toLocaleDateString()}
-                  {analysis.processing_completed_at && (
-                    <span className="ml-2">
-                      • Completed {new Date(analysis.processing_completed_at).toLocaleDateString()}
-                    </span>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{analysis.file_name}</h1>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(analysis.status)}
+                    <Badge className={getStatusColor(analysis.status)}>{analysis.status.toUpperCase()}</Badge>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(analysis.created_at).toLocaleDateString()}
+                  </div>
+                  {userContext.company && (
+                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <Building className="h-4 w-4" />
+                      {userContext.company}
+                    </div>
                   )}
-                </p>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleShare}>
-                <Share2 className="mr-2 h-4 w-4" />
-                Share
-              </Button>
+
               {analysis.status === "completed" && (
-                <AnalysisExportDialog analysisId={analysis.id} fileName={analysis.file_name} />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleExport("pdf")} disabled={exporting}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                  <Button variant="outline" onClick={() => handleExport("excel")} disabled={exporting}>
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Excel
+                  </Button>
+                  <Button variant="outline" onClick={() => handleExport("powerpoint")} disabled={exporting}>
+                    <Presentation className="h-4 w-4 mr-2" />
+                    PowerPoint
+                  </Button>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Status Card */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(analysis.status)}
-                  <div>
-                    <Badge variant="secondary" className={getStatusColor(analysis.status)}>
-                      {analysis.status.toUpperCase()}
-                    </Badge>
-                    <p className="text-sm text-gray-600 mt-1">Analysis Status</p>
-                  </div>
-                </div>
-                {analysis.status === "processing" && (
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Processing your data...</p>
-                    <Button variant="outline" size="sm" onClick={fetchAnalysis} className="mt-2">
-                      Refresh Status
-                    </Button>
-                  </div>
-                )}
-                {analysis.status === "failed" && analysis.error_message && (
-                  <div className="text-right">
-                    <p className="text-sm text-red-600">{analysis.error_message}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {analysis.status === "processing" && (
+            <Alert className="mb-6">
+              <Clock className="h-4 w-4" />
+              <AlertDescription>
+                Your analysis is still processing. This page will automatically update when complete.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          {/* Analysis Results - Only show if completed */}
+          {analysis.status === "failed" && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Analysis failed to complete. Please try uploading your file again or contact support.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {analysis.status === "completed" && (
-            <Tabs defaultValue="overview" className="space-y-6">
+            <Tabs defaultValue="summary" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="insights">Insights</TabsTrigger>
+                <TabsTrigger value="summary">Executive Summary</TabsTrigger>
+                <TabsTrigger value="insights">Detailed Insights</TabsTrigger>
                 <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
                 <TabsTrigger value="quality">Data Quality</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6">
-                {/* Executive Summary */}
+              <TabsContent value="summary" className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Executive Summary</CardTitle>
-                    <CardDescription>Key insights from your data analysis</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Executive Summary
+                    </CardTitle>
+                    <CardDescription>High-level overview of your data analysis</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="prose max-w-none">
-                      {analysis.summary ? (
-                        <p className="text-gray-700 leading-relaxed">{analysis.summary}</p>
-                      ) : executiveSummary.overview ? (
-                        <p className="text-gray-700 leading-relaxed">{executiveSummary.overview}</p>
-                      ) : (
-                        <p className="text-gray-500 italic">
-                          Executive summary will appear here once analysis is complete.
-                        </p>
+                      <p className="text-lg leading-relaxed">
+                        {executiveSummary.overview || analysis.summary || "Analysis summary will appear here."}
+                      </p>
+
+                      {executiveSummary.keyFindings && executiveSummary.keyFindings.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="text-lg font-semibold mb-3">Key Findings</h4>
+                          <ul className="space-y-2">
+                            {executiveSummary.keyFindings.map((finding: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span>{finding}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {executiveSummary.businessImpact && (
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h4 className="text-lg font-semibold text-blue-900 mb-2">Business Impact</h4>
+                          <p className="text-blue-800">{executiveSummary.businessImpact}</p>
+                        </div>
                       )}
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
 
-                {/* Key Metrics */}
-                {executiveSummary.keyFindings && (
+              <TabsContent value="insights" className="space-y-6">
+                {detailedInsights.length > 0 ? (
+                  detailedInsights.map((insight: any, index: number) => (
+                    <Card key={index}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Lightbulb className="h-5 w-5 text-yellow-600" />
+                          {insight.title || `Insight ${index + 1}`}
+                        </CardTitle>
+                        {insight.confidence && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Confidence:</span>
+                            <Progress value={insight.confidence * 100} className="w-24" />
+                            <span className="text-sm font-medium">{Math.round(insight.confidence * 100)}%</span>
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-gray-700 leading-relaxed mb-4">{insight.content || insight.finding}</p>
+                        {insight.impact && (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm font-medium text-gray-900 mb-1">Impact:</p>
+                            <p className="text-sm text-gray-700">{insight.impact}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Key Findings</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3">
-                        {executiveSummary.keyFindings.map((finding: string, index: number) => (
-                          <li key={index} className="flex items-start gap-3">
-                            <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">{finding}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <CardContent className="p-12 text-center">
+                      <Lightbulb className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Detailed Insights</h3>
+                      <p className="text-gray-600">Detailed insights will appear here once analysis is complete.</p>
                     </CardContent>
                   </Card>
                 )}
               </TabsContent>
 
-              <TabsContent value="insights" className="space-y-6">
-                <div className="grid gap-6">
-                  {insights.length > 0 ? (
-                    insights.map((insight: any, index: number) => (
-                      <Card key={index}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">{insight.title}</CardTitle>
-                            {insight.confidence_score && (
-                              <Badge variant="outline">{Math.round(insight.confidence_score * 100)}% confidence</Badge>
-                            )}
-                          </div>
-                          {insight.type && (
-                            <CardDescription className="capitalize">{insight.type.replace("_", " ")}</CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-gray-700">{insight.content || insight.finding}</p>
-                          {insight.impact && (
-                            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                              <p className="text-sm font-medium text-blue-900">Business Impact:</p>
-                              <p className="text-sm text-blue-800">{insight.impact}</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <Card>
-                      <CardContent className="p-8 text-center">
-                        <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">Detailed insights will appear here once analysis is complete.</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
-
               <TabsContent value="recommendations" className="space-y-6">
-                <div className="grid gap-6">
-                  {recommendations.length > 0 ? (
-                    recommendations.map((rec: any, index: number) => (
-                      <Card key={index}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">{rec.title}</CardTitle>
-                            <div className="flex gap-2">
-                              {rec.impact && (
-                                <Badge
-                                  variant={
-                                    rec.impact === "High"
-                                      ? "destructive"
-                                      : rec.impact === "Medium"
-                                        ? "default"
-                                        : "secondary"
-                                  }
-                                >
-                                  {rec.impact} Impact
-                                </Badge>
-                              )}
-                              {rec.effort && <Badge variant="outline">{rec.effort} Effort</Badge>}
-                            </div>
-                          </div>
-                          {rec.category && (
-                            <CardDescription className="capitalize">{rec.category.replace("_", " ")}</CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-gray-700 mb-4">{rec.description}</p>
-                          {rec.actionSteps && rec.actionSteps.length > 0 && (
-                            <div>
-                              <p className="font-medium text-gray-900 mb-2">Action Steps:</p>
-                              <ul className="space-y-1">
-                                {rec.actionSteps.map((step: string, stepIndex: number) => (
-                                  <li key={stepIndex} className="flex items-start gap-2">
-                                    <span className="text-blue-600 font-medium">{stepIndex + 1}.</span>
-                                    <span className="text-gray-700">{step}</span>
-                                  </li>
-                                ))}
-                              </ul>
+                {roleRecommendations.length > 0 ? (
+                  roleRecommendations.map((rec: any, index: number) => (
+                    <Card key={index}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Target className="h-5 w-5 text-blue-600" />
+                          {rec.title || `Recommendation ${index + 1}`}
+                        </CardTitle>
+                        {rec.impact && <Badge variant="outline">{rec.impact} Impact</Badge>}
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-gray-700 leading-relaxed mb-4">{rec.description || rec.recommendation}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {rec.timeline && (
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <p className="text-sm font-medium text-gray-900 mb-1">Timeline:</p>
+                              <p className="text-sm text-gray-700">{rec.timeline}</p>
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <Card>
-                      <CardContent className="p-8 text-center">
-                        <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">Recommendations will appear here once analysis is complete.</p>
+                          {rec.resources_required && (
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <p className="text-sm font-medium text-gray-900 mb-1">Resources Required:</p>
+                              <p className="text-sm text-gray-700">{rec.resources_required}</p>
+                            </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Recommendations</h3>
+                      <p className="text-gray-600">
+                        Strategic recommendations will appear here once analysis is complete.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="quality" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Data Quality Assessment</CardTitle>
-                    <CardDescription>Comprehensive evaluation of your data quality</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {typeof dataQuality === "object" && Object.keys(dataQuality).length > 0 ? (
-                      <div className="space-y-4">
-                        {Object.entries(dataQuality).map(([key, value]) => (
-                          <div key={key} className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="capitalize font-medium">{key.replace(/([A-Z])/g, " $1").trim()}</span>
-                              <span className="font-medium">
-                                {typeof value === "number"
-                                  ? `${value}${value <= 1 ? "%" : value <= 100 ? "%" : ""}`
-                                  : String(value)}
-                              </span>
-                            </div>
-                            {typeof value === "number" && value <= 100 && <Progress value={value} className="h-2" />}
+                {Object.keys(dataQuality).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(dataQuality).map(([key, value]) => (
+                      <Card key={key}>
+                        <CardContent className="p-6 text-center">
+                          <div className="text-3xl font-bold text-blue-600 mb-2">
+                            {typeof value === "number" ? Math.round(value) : value}
+                            {typeof value === "number" && value <= 100 ? "%" : ""}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">
-                          Data quality metrics will appear here once analysis is complete.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                          <div className="text-sm font-medium text-gray-900">
+                            {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Quality Metrics</h3>
+                      <p className="text-gray-600">
+                        Data quality assessment will appear here once analysis is complete.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
-          )}
-
-          {/* Processing State */}
-          {analysis.status === "processing" && (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Analysis in Progress</h3>
-                <p className="text-gray-600 mb-4">
-                  We're analyzing your data using advanced AI. This typically takes 2-5 minutes.
-                </p>
-                <Button variant="outline" onClick={fetchAnalysis}>
-                  <Clock className="mr-2 h-4 w-4" />
-                  Check Status
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Failed State */}
-          {analysis.status === "failed" && (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Analysis Failed</h3>
-                <p className="text-gray-600 mb-4">
-                  {analysis.error_message ||
-                    "There was an error processing your analysis. Please try uploading your file again."}
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button variant="outline" onClick={() => router.push("/upload")}>
-                    Try Again
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                    Back to Dashboard
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           )}
         </div>
       </main>
