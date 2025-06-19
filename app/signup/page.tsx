@@ -1,309 +1,92 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
+import type React from "react"
+
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-const formSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  company: z.string().optional(),
-  industry: z.string().min(1, "Please select an industry"),
-})
+export default function SignUpPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState("")
 
-const industries = [
-  { value: "technology", label: "Technology" },
-  { value: "finance", label: "Finance & Banking" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "retail", label: "Retail & E-commerce" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "education", label: "Education" },
-  { value: "consulting", label: "Consulting" },
-  { value: "other", label: "Other" },
-]
-
-export default function SignupPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const router = useRouter()
-  const supabase = createClientComponentClient()
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      company: "",
-      industry: "",
-    },
-  })
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage("")
 
     try {
-      console.log("Starting signup process with values:", {
-        email: values.email,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        industry: values.industry,
-      })
-
-      // Sign up with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email.trim().toLowerCase(),
-        password: values.password,
-        options: {
-          data: {
-            first_name: values.firstName.trim(),
-            last_name: values.lastName.trim(),
-            full_name: `${values.firstName.trim()} ${values.lastName.trim()}`,
-          },
-        },
-      })
-
-      console.log("Auth signup result:", { authData, authError })
-
-      if (authError) {
-        console.error("Auth signup error:", authError)
-        toast({
-          title: "Sign up failed",
-          description: authError.message,
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (!authData.user) {
-        console.error("No user returned from signup")
-        toast({
-          title: "Sign up failed",
-          description: "Failed to create user account.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      console.log("User created successfully, creating profile...")
-
-      // Create user profile (without analysis_type - will be set in role selection)
-      const profileData = {
-        id: authData.user.id,
-        email: values.email.trim().toLowerCase(),
-        name: `${values.firstName.trim()} ${values.lastName.trim()}`,
-        first_name: values.firstName.trim(),
-        last_name: values.lastName.trim(),
-        company: values.company?.trim() || null,
-        industry: values.industry.trim(),
-        account_type: "trial_pro",
-        trial_status: "active",
-        trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        upload_credits: 100,
-        export_credits: 50,
-        email_verified: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // Note: analysis_type will be set in the role selection step
-      }
-
-      console.log("Creating profile with data:", profileData)
-
-      const { error: profileError } = await supabase.from("profiles").insert(profileData)
-
-      if (profileError) {
-        console.error("Profile creation error:", profileError)
-        toast({
-          title: "Profile creation failed",
-          description: "Account created but profile setup failed. Please contact support.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      console.log("Profile created successfully")
-
-      toast({
-        title: "Account created successfully!",
-        description: "Let's set up your role preferences.",
-      })
-
-      // Redirect to role selection instead of dashboard
-      router.push("/select-role")
+      // Simulate signup process
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setMessage("Account created successfully! Check your email to verify.")
     } catch (error) {
-      console.error("Signup error:", error)
-      toast({
-        title: "Something went wrong",
-        description: "Please try again later.",
-        variant: "destructive",
-      })
+      setMessage("Error creating account. Please try again.")
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
-      <div className="max-w-lg w-full mx-4">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Join DaytaTech</h1>
-            <p className="text-gray-600 mt-2">Get AI-powered insights tailored to your needs</p>
-          </div>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John" {...field} disabled={isLoading} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Doe" {...field} disabled={isLoading} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="john@company.com" {...field} type="email" disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+          <CardDescription>Sign up for DaytaTech to start analyzing your data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="Enter your email"
               />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          placeholder="Create a strong password"
-                          {...field}
-                          type={showPassword ? "text" : "password"}
-                          disabled={isLoading}
-                          className="pr-10"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isLoading}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Create a password"
               />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Creating Account..." : "Sign Up"}
+            </Button>
+          </form>
 
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Your company name" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="industry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Industry</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your industry" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {industries.map((industry) => (
-                          <SelectItem key={industry.value} value={industry.value}>
-                            {industry.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button disabled={isLoading} className="w-full h-11 text-base font-medium" type="submit">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  "Create Account & Continue"
-                )}
-              </Button>
-            </form>
-          </Form>
+          {message && (
+            <div
+              className={`mt-4 p-3 rounded text-sm ${
+                message.includes("successfully") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+              }`}
+            >
+              {message}
+            </div>
+          )}
 
           <div className="mt-6 text-center">
-            <div className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+              <Link href="/login" className="text-blue-600 hover:underline">
                 Sign in
               </Link>
-            </div>
+            </p>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

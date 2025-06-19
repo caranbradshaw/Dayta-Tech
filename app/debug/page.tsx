@@ -1,45 +1,30 @@
-"use client"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
 export default function DebugPage() {
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  const runDebug = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch("/api/debug/analytics")
-      const data = await response.json()
-      setResult(data)
-    } catch (error) {
-      setResult({ success: false, error: error.message })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="container mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>🔍 Database Debug Tool</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button onClick={runDebug} disabled={loading}>
-            {loading ? "Running Debug..." : "Debug Database"}
-          </Button>
+    <div className="min-h-screen p-8">
+      <h1 className="text-3xl font-bold mb-8">Deployment Debug</h1>
 
-          {result && (
-            <div className="mt-4">
-              <h3 className="font-semibold mb-2">Debug Result:</h3>
-              <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">{JSON.stringify(result, null, 2)}</pre>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="p-4 bg-green-100 rounded">
+          <h2 className="font-bold text-green-800">✅ Next.js App Router Working</h2>
+          <p className="text-green-700">This page loaded successfully</p>
+        </div>
+
+        <div className="p-4 bg-blue-100 rounded">
+          <h2 className="font-bold text-blue-800">📦 Build Info</h2>
+          <p className="text-blue-700">Node: {process.version}</p>
+          <p className="text-blue-700">Environment: {process.env.NODE_ENV}</p>
+        </div>
+
+        <div className="p-4 bg-yellow-100 rounded">
+          <h2 className="font-bold text-yellow-800">🔧 Environment Variables</h2>
+          <p className="text-yellow-700">
+            Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ Set" : "❌ Missing"}
+          </p>
+          <p className="text-yellow-700">
+            Supabase Key: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ Set" : "❌ Missing"}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
