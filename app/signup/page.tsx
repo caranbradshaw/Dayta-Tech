@@ -21,7 +21,6 @@ const formSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   company: z.string().optional(),
   industry: z.string().min(1, "Please select an industry"),
-  role: z.string().min(1, "Please select your role"),
 })
 
 const industries = [
@@ -33,15 +32,6 @@ const industries = [
   { value: "education", label: "Education" },
   { value: "consulting", label: "Consulting" },
   { value: "other", label: "Other" },
-]
-
-const roles = [
-  { value: "data-scientist", label: "Data Scientist" },
-  { value: "data-engineer", label: "Data Engineer" },
-  { value: "business-analyst", label: "Business Analyst" },
-  { value: "marketing-analyst", label: "Marketing Analyst" },
-  { value: "operations-analyst", label: "Operations Analyst" },
-  { value: "general", label: "General User" },
 ]
 
 export default function SignupPage() {
@@ -58,7 +48,6 @@ export default function SignupPage() {
       password: "",
       company: "",
       industry: "",
-      role: "",
     },
   })
 
@@ -97,7 +86,7 @@ export default function SignupPage() {
         return
       }
 
-      // Create user profile
+      // Create user profile (without analysis_type - will be set in role selection)
       const { error: profileError } = await supabase.from("profiles").insert({
         id: authData.user.id,
         email: values.email.trim().toLowerCase(),
@@ -106,13 +95,13 @@ export default function SignupPage() {
         last_name: values.lastName.trim(),
         company: values.company?.trim() || null,
         industry: values.industry.trim(),
-        role: values.role.trim(),
         account_type: "trial_pro",
         trial_status: "active",
         trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         upload_credits: 100,
         export_credits: 50,
         email_verified: false,
+        // Note: analysis_type will be set in the role selection step
       })
 
       if (profileError) {
@@ -121,10 +110,11 @@ export default function SignupPage() {
 
       toast({
         title: "Account created successfully!",
-        description: "Please check your email to verify your account.",
+        description: "Let's set up your role preferences.",
       })
 
-      router.push("/dashboard")
+      // Redirect to role selection instead of dashboard
+      router.push("/select-role")
     } catch (error) {
       console.error("Signup error:", error)
       toast({
@@ -263,31 +253,6 @@ export default function SignupPage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <Button disabled={isLoading} className="w-full h-11 text-base font-medium" type="submit">
                 {isLoading ? (
                   <>
@@ -295,7 +260,7 @@ export default function SignupPage() {
                     Creating account...
                   </>
                 ) : (
-                  "Create Account & Start Free Trial"
+                  "Create Account & Continue"
                 )}
               </Button>
             </form>

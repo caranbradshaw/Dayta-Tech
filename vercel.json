@@ -1,18 +1,27 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install --no-audit --no-fund --prefer-offline",
-  "framework": "nextjs",
-  "functions": {
-    "app/api/ai/analyze/route.ts": {
-      "maxDuration": 30
-    },
-    "app/api/upload/route.ts": {
-      "maxDuration": 30
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
     }
-  },
+  ],
+  "routes": [
+    {
+      "src": "/select-role",
+      "dest": "/select-role"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ],
   "env": {
-    "NPM_CONFIG_CACHE": "/tmp/.npm",
-    "NPM_CONFIG_FUND": "false",
-    "NPM_CONFIG_AUDIT": "false"
+    "NEXT_PUBLIC_APP_URL": "@next_public_app_url"
+  },
+  "functions": {
+    "app/api/*/route.ts": {
+      "maxDuration": 60
+    }
   }
 }
