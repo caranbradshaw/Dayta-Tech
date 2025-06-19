@@ -8,10 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/components/auth-context"
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -21,8 +22,21 @@ const formSchema = z.object({
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  const { user, loading } = useAuth()
   const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (mounted && !loading && user) {
+      router.push("/dashboard")
+    }
+  }, [user, loading, mounted, router])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,14 +50,12 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      console.log("Starting login process for:", values.email)
+      console.log("Starting login process...")
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email.trim().toLowerCase(),
         password: values.password,
       })
-
-      console.log("Login result:", { data, error })
 
       if (error) {
         console.error("Login error:", error)
@@ -56,18 +68,18 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        console.log("Login successful for user:", data.user.id)
+        console.log("Login successful")
 
         // Check if user has completed role selection
         const { data: profile } = await supabase
           .from("profiles")
-          .select("analysis_type")
+          .select("analysis_type, name")
           .eq("id", data.user.id)
           .single()
 
         toast({
           title: "Welcome back!",
-          description: "You have been signed in successfully.",
+          description: `Good to see you again${profile?.name ? `, ${profile.name}` : ""}!`,
         })
 
         // Redirect based on whether they've completed role selection
@@ -89,10 +101,31 @@ export default function LoginPage() {
     }
   }
 
+  if (!mounted || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-md w-full mx-4">
         <div className="bg-white rounded-lg shadow-xl p-8">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Link>
+            </Button>
+          </div>
+
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
             <p className="text-gray-600 mt-2">Sign in to your DaytaTech account</p>

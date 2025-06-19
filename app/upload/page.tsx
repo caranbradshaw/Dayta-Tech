@@ -1,204 +1,317 @@
 "use client"
 
-import { useState } from "react"
-import { DaytaWizardForm } from "@/components/dayta-wizard-form"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/components/auth-context"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Loader2, AlertCircle } from "lucide-react"
+import type React from "react"
 
-interface WizardData {
-  companyName: string
-  industry: string
-  companySize: string
-  role: string
-  goals: string[]
-  files: File[]
-  context: string
-}
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { toast } from "@/components/ui/use-toast"
+import { DashboardHeader } from "@/components/dashboard-header"
+import { useAuth } from "@/components/auth-context"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { Upload, FileText, X, Loader2, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 export default function UploadPage() {
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisStage, setAnalysisStage] = useState("")
+  const [mounted, setMounted] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [dragActive, setDragActive] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
-  const { user } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
+  const supabase = createClientComponentClient()
 
-  // Redirect to login if not authenticated
-  if (!user) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-            <p className="text-gray-600 mb-4">Please sign in to upload and analyze your data.</p>
-            <Button onClick={() => router.push("/login")} className="w-full">
-              Sign In
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  const handleWizardComplete = async (data: WizardData) => {
-    if (data.files.length === 0) {
+  // Redirect if not logged in
+  useEffect(() => {
+    if (mounted && !authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, mounted, router])
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
+    }
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0])
+    }
+  }, [])
+
+  const handleFileSelect = (selectedFile: File) => {
+    // Validate file type
+    const allowedTypes = [
+      "text/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/json",
+    ]
+
+    if (!allowedTypes.includes(selectedFile.type)) {
       toast({
-        title: "No Files Selected",
-        description: "Please upload at least one file to analyze.",
+        title: "Invalid file type",
+        description: "Please upload a CSV, Excel, or JSON file.",
         variant: "destructive",
       })
       return
     }
 
-    setIsAnalyzing(true)
-    setProgress(0)
-    setAnalysisStage("Preparing analysis...")
-
-    try {
-      // Step 1: Create analysis record
-      setAnalysisStage("Creating analysis record...")
-      setProgress(10)
-
-      const analysisResponse = await fetch("/api/analyses/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          fileName: data.files[0].name,
-          fileType: data.files[0].type,
-          fileSize: data.files[0].size,
-          industry: data.industry,
-          role: data.role,
-          goals: data.goals,
-          context: data.context,
-          companyName: data.companyName,
-          companySize: data.companySize,
-        }),
-      })
-
-      if (!analysisResponse.ok) {
-        const errorData = await analysisResponse.json()
-        throw new Error(errorData.error || "Failed to create analysis record")
-      }
-
-      const { analysisId } = await analysisResponse.json()
-      setProgress(25)
-
-      // Step 2: Upload files
-      setAnalysisStage("Uploading files...")
-      const formData = new FormData()
-
-      data.files.forEach((file, index) => {
-        formData.append(`file_${index}`, file)
-      })
-
-      formData.append("analysisId", analysisId)
-      formData.append("userId", user.id)
-      formData.append("companyName", data.companyName)
-      formData.append("industry", data.industry)
-      formData.append("companySize", data.companySize)
-      formData.append("role", data.role)
-      formData.append("goals", JSON.stringify(data.goals))
-      formData.append("context", data.context)
-
-      setProgress(50)
-
-      // Step 3: Start AI analysis
-      setAnalysisStage("Starting AI analysis...")
-      const analysisApiResponse = await fetch("/api/ai/analyze", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!analysisApiResponse.ok) {
-        const errorData = await analysisApiResponse.json()
-        throw new Error(errorData.details || errorData.error || "Analysis failed")
-      }
-
-      setProgress(90)
-      setAnalysisStage("Finalizing results...")
-
-      const result = await analysisApiResponse.json()
-      setProgress(100)
-
+    // Validate file size (10MB limit)
+    if (selectedFile.size > 10 * 1024 * 1024) {
       toast({
-        title: "Analysis Complete!",
-        description: "Your data has been analyzed successfully.",
-      })
-
-      // Redirect to results
-      setTimeout(() => {
-        router.push(`/analysis/${analysisId}`)
-      }, 1000)
-    } catch (error) {
-      console.error("Analysis error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Analysis failed"
-
-      toast({
-        title: "Analysis Failed",
-        description: errorMessage,
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB.",
         variant: "destructive",
       })
+      return
+    }
 
-      setIsAnalyzing(false)
+    setFile(selectedFile)
+  }
+
+  const handleUpload = async () => {
+    if (!file || !user) return
+
+    setUploading(true)
+    setProgress(0)
+
+    try {
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 200)
+
+      // Create analysis record
+      const analysisData = {
+        user_id: user.id,
+        file_name: file.name,
+        file_size: file.size,
+        file_type: file.type,
+        status: "processing",
+        analysis_type: profile?.analysis_type || "comprehensive",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data: analysis, error: analysisError } = await supabase
+        .from("analyses")
+        .insert(analysisData)
+        .select()
+        .single()
+
+      if (analysisError) {
+        throw new Error("Failed to create analysis record")
+      }
+
+      setProgress(100)
+      setUploading(false)
+      setAnalyzing(true)
+
+      // Simulate AI analysis
+      setTimeout(async () => {
+        try {
+          // Update analysis with mock results
+          const mockResults = {
+            status: "completed",
+            summary: `Analysis of ${file.name} reveals key insights about your data patterns. The dataset contains valuable information that can drive business decisions.`,
+            insights_count: Math.floor(Math.random() * 5) + 3,
+            recommendations_count: Math.floor(Math.random() * 3) + 2,
+            processing_time_ms: Math.floor(Math.random() * 5000) + 2000,
+            ai_provider: "mock",
+            updated_at: new Date().toISOString(),
+          }
+
+          await supabase.from("analyses").update(mockResults).eq("id", analysis.id)
+
+          toast({
+            title: "Analysis complete!",
+            description: "Your data has been analyzed successfully.",
+          })
+
+          router.push(`/analysis/${analysis.id}`)
+        } catch (error) {
+          console.error("Error completing analysis:", error)
+          await supabase
+            .from("analyses")
+            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .eq("id", analysis.id)
+
+          toast({
+            title: "Analysis failed",
+            description: "Something went wrong during analysis. Please try again.",
+            variant: "destructive",
+          })
+          setAnalyzing(false)
+        }
+      }, 3000)
+    } catch (error) {
+      console.error("Upload error:", error)
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      })
+      setUploading(false)
       setProgress(0)
-      setAnalysisStage("")
     }
   }
 
-  if (isAnalyzing) {
+  const removeFile = () => {
+    setFile(null)
+    setProgress(0)
+  }
+
+  if (!mounted || authLoading) {
     return (
-      <div className="container mx-auto py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <div className="space-y-6">
-              <div className="relative">
-                <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-600">{progress}%</span>
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Analyzing Your Data</h2>
-                <p className="text-gray-600 mb-4">{analysisStage}</p>
-
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="text-sm text-gray-500">
-                <p>This may take a few minutes depending on your file size.</p>
-                <p>Please don't close this window.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
-  return (
-    <div className="container mx-auto py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Upload & Analyze Your Data</h1>
-          <p className="text-gray-600">Follow our guided wizard to get personalized insights from your business data</p>
-        </div>
+  if (!user) {
+    return null
+  }
 
-        <DaytaWizardForm onComplete={handleWizardComplete} />
-      </div>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader />
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </div>
+
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Your Data</h1>
+            <p className="text-gray-600">
+              Upload a CSV, Excel, or JSON file to get AI-powered insights and recommendations
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Select File</CardTitle>
+              <CardDescription>Supported formats: CSV, Excel (.xlsx, .xls), JSON • Max size: 10MB</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!file ? (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Drop your file here, or click to browse</h3>
+                  <p className="text-gray-500 mb-4">CSV, Excel, or JSON files up to 10MB</p>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls,.json"
+                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <Button asChild>
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      Choose File
+                    </label>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <h4 className="font-medium">{file.name}</h4>
+                        <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    {!uploading && !analyzing && (
+                      <Button variant="ghost" size="sm" onClick={removeFile}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {uploading && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Uploading...</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <Progress value={progress} />
+                    </div>
+                  )}
+
+                  {analyzing && (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      <span>Analyzing your data with AI...</span>
+                    </div>
+                  )}
+
+                  {!uploading && !analyzing && (
+                    <Button onClick={handleUpload} className="w-full" size="lg">
+                      Start Analysis
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Credits Info */}
+          <Card className="mt-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">Upload Credits</h4>
+                  <p className="text-sm text-gray-500">You have {profile?.upload_credits || 0} credits remaining</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-blue-600">{profile?.upload_credits || 0}</div>
+                  <p className="text-xs text-gray-500">Credits left</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   )
 }
