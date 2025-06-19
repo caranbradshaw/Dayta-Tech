@@ -1,4 +1,5 @@
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import type { Database } from "@/types/database.types"
 import { type Result, getErrorMessage, logSupabaseError, DatabaseError } from "@/lib/types/result"
@@ -9,11 +10,54 @@ type Analysis = Database["public"]["Tables"]["analyses"]["Row"]
 
 // Helper function to get server supabase client
 function getServerSupabase() {
-  return createServerComponentClient<Database>({ cookies })
+  try {
+    // Try to use server component client first (for server components)
+    return createServerComponentClient<Database>({ cookies })
+  } catch (error) {
+    // Fallback to service role client for API routes
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing Supabase environment variables for server client")
+    }
+
+    return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  }
 }
 
-// Improved user profile management with Result type
-export async function getUserProfile(userId: string): Promise<Result<Profile | null>> {
+// Client-side function for getUserProfile (can be used in client components)
+export async function getUserProfile(userId: string): Promise<Profile | null> {
+  try {
+    if (!userId) {
+      throw new Error("User ID is required")
+    }
+
+    const supabase = getServerSupabase()
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // Profile doesn't exist
+        return null
+      }
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error("Error fetching user profile:", error)
+    throw error
+  }
+}
+
+// Server-side function with Result type
+export async function getUserProfileServer(userId: string): Promise<Result<Profile | null>> {
   try {
     if (!userId) {
       return { success: false, error: "User ID is required" }

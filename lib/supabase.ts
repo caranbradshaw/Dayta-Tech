@@ -1,4 +1,5 @@
 import { createClientComponentClient, createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database.types"
 
 // Debug environment variables
@@ -18,15 +19,44 @@ if (!supabaseUrl || !supabaseAnonKey) {
   `)
 }
 
-// For client components
-export function createClient() {
+// Legacy client for backward compatibility (use sparingly)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+})
+
+// For client components - preferred method
+export function createClientSupabase() {
   return createClientComponentClient<Database>()
 }
 
 // For server components (to be used with cookies)
-export function createServerClient(cookies: any) {
+export function createServerSupabase(cookies: any) {
   return createServerComponentClient<Database>({ cookies })
 }
 
-// Export types
+// For server-side operations with service role
+export function createServerClient() {
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseServiceKey) {
+    throw new Error("Supabase service role key is required for server operations")
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+// Export for backward compatibility
+export { supabase as default }
 export type { Database }
+
+// Export createClient function for other modules
+export { createClient } from "@supabase/supabase-js"
