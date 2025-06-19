@@ -1,4 +1,3 @@
-
 import { PDFDocument, rgb } from 'pdf-lib'
 
 export async function generatePDFBuffer(analysis: any) {

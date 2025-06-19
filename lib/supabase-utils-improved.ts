@@ -1,10 +1,16 @@
-import { supabase } from "@/lib/supabase"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 import type { Database } from "@/types/database.types"
 import { type Result, getErrorMessage, logSupabaseError, DatabaseError } from "@/lib/types/result"
 
 type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"]
 type Profile = Database["public"]["Tables"]["profiles"]["Row"]
 type Analysis = Database["public"]["Tables"]["analyses"]["Row"]
+
+// Helper function to get server supabase client
+function getServerSupabase() {
+  return createServerComponentClient<Database>({ cookies })
+}
 
 // Improved user profile management with Result type
 export async function getUserProfile(userId: string): Promise<Result<Profile | null>> {
@@ -13,6 +19,7 @@ export async function getUserProfile(userId: string): Promise<Result<Profile | n
       return { success: false, error: "User ID is required" }
     }
 
+    const supabase = getServerSupabase()
     const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
     if (error) {
@@ -46,6 +53,7 @@ export async function createUserProfile(
       return { success: false, error: "User ID and email are required" }
     }
 
+    const supabase = getServerSupabase()
     const { data, error } = await supabase.from("profiles").insert(profileData).select().single()
 
     if (error) {
@@ -71,6 +79,7 @@ export async function updateUserProfile(userId: string, updates: Partial<Profile
       return { success: false, error: "User ID is required" }
     }
 
+    const supabase = getServerSupabase()
     const { data, error } = await supabase
       .from("profiles")
       .update({
@@ -115,6 +124,7 @@ export async function getUserUsageStats(
       return { success: false, error: "User ID is required" }
     }
 
+    const supabase = getServerSupabase()
     const startOfMonth = month ? new Date(month) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     const endOfMonth = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 0)
 
@@ -206,6 +216,7 @@ export async function getUserSubscription(userId: string): Promise<Result<Subscr
       return { success: false, error: "User ID is required" }
     }
 
+    const supabase = getServerSupabase()
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
@@ -319,6 +330,7 @@ export async function checkUserCredits(userId: string): Promise<
       return { success: false, error: "User ID is required" }
     }
 
+    const supabase = getServerSupabase()
     const { data, error } = await supabase
       .from("profiles")
       .select("upload_credits, export_credits, account_type")
@@ -356,6 +368,7 @@ export async function deductCredits(userId: string, uploadCredits = 0, exportCre
       return { success: false, error: "Credit amounts must be non-negative" }
     }
 
+    const supabase = getServerSupabase()
     const { data, error } = await supabase.rpc("deduct_user_credits", {
       user_id: userId,
       upload_credits: uploadCredits,

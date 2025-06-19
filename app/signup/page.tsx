@@ -11,7 +11,6 @@ import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-const supabase = createClientComponentClient()
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
@@ -39,6 +38,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,6 +56,13 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
+      console.log("Starting signup process with values:", {
+        email: values.email,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        industry: values.industry,
+      })
+
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email.trim().toLowerCase(),
@@ -69,7 +76,10 @@ export default function SignupPage() {
         },
       })
 
+      console.log("Auth signup result:", { authData, authError })
+
       if (authError) {
+        console.error("Auth signup error:", authError)
         toast({
           title: "Sign up failed",
           description: authError.message,
@@ -79,6 +89,7 @@ export default function SignupPage() {
       }
 
       if (!authData.user) {
+        console.error("No user returned from signup")
         toast({
           title: "Sign up failed",
           description: "Failed to create user account.",
@@ -87,8 +98,10 @@ export default function SignupPage() {
         return
       }
 
+      console.log("User created successfully, creating profile...")
+
       // Create user profile (without analysis_type - will be set in role selection)
-      const { error: profileError } = await supabase.from("profiles").insert({
+      const profileData = {
         id: authData.user.id,
         email: values.email.trim().toLowerCase(),
         name: `${values.firstName.trim()} ${values.lastName.trim()}`,
@@ -102,12 +115,26 @@ export default function SignupPage() {
         upload_credits: 100,
         export_credits: 50,
         email_verified: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         // Note: analysis_type will be set in the role selection step
-      })
+      }
+
+      console.log("Creating profile with data:", profileData)
+
+      const { error: profileError } = await supabase.from("profiles").insert(profileData)
 
       if (profileError) {
         console.error("Profile creation error:", profileError)
+        toast({
+          title: "Profile creation failed",
+          description: "Account created but profile setup failed. Please contact support.",
+          variant: "destructive",
+        })
+        return
       }
+
+      console.log("Profile created successfully")
 
       toast({
         title: "Account created successfully!",

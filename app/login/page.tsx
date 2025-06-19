@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,12 +36,17 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      console.log("Starting login process for:", values.email)
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email.trim().toLowerCase(),
         password: values.password,
       })
 
+      console.log("Login result:", { data, error })
+
       if (error) {
+        console.error("Login error:", error)
         toast({
           title: "Sign in failed",
           description: error.message,
@@ -50,11 +56,26 @@ export default function LoginPage() {
       }
 
       if (data.user) {
+        console.log("Login successful for user:", data.user.id)
+
+        // Check if user has completed role selection
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("analysis_type")
+          .eq("id", data.user.id)
+          .single()
+
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
         })
-        router.push("/dashboard")
+
+        // Redirect based on whether they've completed role selection
+        if (profile?.analysis_type) {
+          router.push("/dashboard")
+        } else {
+          router.push("/select-role")
+        }
       }
     } catch (error) {
       console.error("Login error:", error)

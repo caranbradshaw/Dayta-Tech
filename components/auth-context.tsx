@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { User } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 import { getUserProfile } from "@/lib/supabase-utils"
@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     // Check for current session
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [router, supabase.auth])
 
   const loadUserProfile = async (userId: string) => {
     try {

@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 import { canUserLogin, calculateDaysRemaining, getTrialStatus } from "@/lib/trial-subscription-system"
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerComponentClient({ cookies })
     const body = await request.json()
     const { email, password } = body
 
