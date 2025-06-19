@@ -3,8 +3,10 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdf-lib', 'xlsx'],
   },
-  webpack: (config) => {
-    config.resolve.alias.canvas = false;
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias.canvas = false;
+    }
     return config;
   },
   // Force rebuild
@@ -19,7 +21,12 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['placeholder.svg'],
   },
+  // Ensure proper static export
+  trailingSlash: false,
+  // Fix for deployment
+  output: 'standalone',
 };
 
 export default nextConfig;
