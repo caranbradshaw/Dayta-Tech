@@ -6,7 +6,6 @@
     "build": "next build",
     "clean": "rm -rf .next node_modules package-lock.json",
     "dev": "next dev",
-    "postinstall": "npm run build",
     "lint": "next lint",
     "start": "next start"
   },

@@ -1,41 +1,49 @@
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export function middleware(request: NextRequest) {
-  // Get the current environment
-  const isDevelopment = process.env.NODE_ENV === "development"
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
 
-  // Define trusted origins for production
-  const trustedOrigins = [
-    "https://daytatech.vercel.app",
-    "https://www.daytatech.com",
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-  ].filter(Boolean)
+  // Create a Supabase client configured to use cookies
+  const supabase = createMiddlewareClient({ req, res })
 
-  // In development, allow localhost
-  if (isDevelopment) {
-    const devOrigins = [
-      "http://localhost:3000",
-      "https://localhost:3000",
-      "http://localhost:3001",
-      "https://localhost:3001",
-    ]
-    trustedOrigins.push(...devOrigins)
+  // Refresh session if expired - required for Server Components
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Protected routes that require authentication
+  const protectedRoutes = ["/dashboard", "/upload", "/reports", "/analysis", "/settings", "/admin"]
+
+  // Check if the current path is protected
+  const isProtectedRoute = protectedRoutes.some((route) => req.nextUrl.pathname.startsWith(route))
+
+  // If accessing a protected route without a session, redirect to login
+  if (isProtectedRoute && !session) {
+    const redirectUrl = new URL("/login", req.url)
+    redirectUrl.searchParams.set("redirectTo", req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Allow Vercel preview domains
-  const origin = request.nextUrl.origin
-  const isVercelPreview = origin.includes(".vercel.app")
-
-  if (!isDevelopment && !isVercelPreview && !trustedOrigins.includes(origin)) {
-    console.warn(`Untrusted origin detected: ${origin}`)
-    return NextResponse.json({ error: "Untrusted origin" }, { status: 403 })
+  // If logged in and trying to access auth pages, redirect to dashboard
+  if (session && (req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/signup")) {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
-  return NextResponse.next()
+  return res
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+  ],
 }

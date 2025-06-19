@@ -9,10 +9,6 @@ const nextConfig = {
     }
     return config;
   },
-  // Force rebuild
-  generateBuildId: async () => {
-    return `build-${Date.now()}`
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -21,12 +17,15 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['placeholder.svg'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
-  // Ensure proper static export
-  trailingSlash: false,
-  // Fix for deployment
-  output: 'standalone',
+  // Remove problematic configs for deployment
+  swcMinify: true,
 };
 
 export default nextConfig;

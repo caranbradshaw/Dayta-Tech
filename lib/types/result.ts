@@ -1,52 +1,46 @@
-// Unified result type for consistent error handling
-export type Result<T> = { success: true; data: T } | { success: false; error: string; code?: string }
+// Enhanced Result type for better error handling
+export type Result<T> =
+  | {
+      success: true
+      data: T
+    }
+  | {
+      success: false
+      error: string
+      code?: string
+    }
 
-// Utility function for consistent error message extraction
+// Database error class
+export class DatabaseError extends Error {
+  code?: string
+
+  constructor(message: string, code?: string) {
+    super(message)
+    this.name = "DatabaseError"
+    this.code = code
+  }
+}
+
+// Utility functions
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
-  if (typeof error === "string") return error
   return String(error)
 }
 
-// Utility function for structured Supabase error logging
-export function logSupabaseError(context: string, error: any) {
+export function logSupabaseError(context: string, error: any): void {
   console.error(`${context}:`, {
     message: error.message,
     code: error.code,
-    hint: error.hint,
     details: error.details,
-    timestamp: new Date().toISOString(),
+    hint: error.hint,
   })
 }
 
-// Custom error classes for better error handling
-export class DatabaseError extends Error {
-  constructor(
-    message: string,
-    public code?: string,
-    public details?: any,
-  ) {
-    super(message)
-    this.name = "DatabaseError"
-  }
+// Success and error result helpers
+export function success<T>(data: T): Result<T> {
+  return { success: true, data }
 }
 
-export class AuthError extends Error {
-  constructor(
-    message: string,
-    public code?: string,
-  ) {
-    super(message)
-    this.name = "AuthError"
-  }
-}
-
-export class ValidationError extends Error {
-  constructor(
-    message: string,
-    public field?: string,
-  ) {
-    super(message)
-    this.name = "ValidationError"
-  }
+export function failure(error: string, code?: string): Result<never> {
+  return { success: false, error, code }
 }
