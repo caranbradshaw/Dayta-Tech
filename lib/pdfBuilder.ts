@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import fs from 'fs'
 import path from 'path'
 
-export async function generatePDFBuffer(analysis: { file_name: string; content: string }) {
+export async function generatePDFBuffer(analysis: { file_name: string; content: string; chartImageBase64?: string }) {
   const pdfDoc = await PDFDocument.create()
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const content = analysis.content || 'No content provided.'
@@ -70,8 +70,8 @@ export async function generatePDFBuffer(analysis: { file_name: string; content: 
 
   for (const word of words) {
     const testLine = `${line} ${word}`.trim()
-    const width = font.widthOfTextAtSize(testLine, textSize)
-    if (width < maxLineWidth) {
+    const textWidth = font.widthOfTextAtSize(testLine, textSize)
+    if (textWidth < maxLineWidth) {
       line = testLine
     } else {
       drawLine(line)
@@ -79,6 +79,27 @@ export async function generatePDFBuffer(analysis: { file_name: string; content: 
     }
   }
   if (line) drawLine(line)
+
+  // Add chart image if provided
+  if (analysis.chartImageBase64) {
+    const chartImage = await pdfDoc.embedPng(analysis.chartImageBase64)
+    const chartDims = chartImage.scale(0.5)
+    page = pdfDoc.addPage([600, 800])
+    pages.push(page)
+    page.drawText("AI-Generated Insight Chart", {
+      x: margin,
+      y: height - margin,
+      size: 16,
+      font,
+      color: rgb(0, 0.49, 0.77),
+    })
+    page.drawImage(chartImage, {
+      x: margin,
+      y: height - margin - chartDims.height - 20,
+      width: chartDims.width,
+      height: chartDims.height,
+    })
+  }
 
   // Apply watermark and page numbers to all pages
   for (let i = 0; i < pages.length; i++) {
