@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    const pdfBuffer = await generatePDFBuffer({ file_name, content })
+    const pdfBuffer = await generateAndSavePDF(content)
+
 
     const pdfPath = `analyses/${user_id}/${file_name}-${Date.now()}.pdf`
     const { error: uploadError } = await supabase.storage
