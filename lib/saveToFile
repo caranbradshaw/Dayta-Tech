@@ -1,0 +1,31 @@
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+
+/**
+ * Generates a PDF buffer from text content.
+ * @param content - The plain text content to include in the PDF.
+ * @returns A Buffer containing the generated PDF.
+ */
+export async function generateAndSavePDF(content: string): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create()
+  const page = pdfDoc.addPage([595, 842]) // A4 size
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const fontSize = 12
+
+  const lines = content.split('\n')
+  let y = 800
+
+  for (const line of lines) {
+    if (y < 40) break // Prevent writing off the page
+    page.drawText(line, {
+      x: 50,
+      y,
+      size: fontSize,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= fontSize + 4
+  }
+
+  const pdfBytes = await pdfDoc.save()
+  return pdfBytes
+}
