@@ -232,7 +232,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
             </div>
             <RoleSelector
               selectedRole={formData.role as AnalysisRole}
-              onChange={(role) => setFormData({ ...formData, role })}
+              onRoleChange={(role) => setFormData({ ...formData, role })}
               isPremium={true}
             />
           </div>
