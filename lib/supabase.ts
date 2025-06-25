@@ -2,12 +2,14 @@ import { createClientComponentClient, createServerComponentClient } from "@supab
 import { createClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database.types"
 
-// Debug environment variables
-console.log("Supabase Environment Check:", {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ Set" : "❌ Missing",
-  key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ Set" : "❌ Missing",
-  urlValue: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20) + "...",
-})
+// Debug environment variables (only in development)
+if (process.env.NODE_ENV === "development") {
+  console.log("Supabase Environment Check:", {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ Set" : "❌ Missing",
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ Set" : "❌ Missing",
+    urlValue: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
+  })
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -25,6 +27,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    flowType: "pkce",
   },
 })
 
@@ -43,7 +46,8 @@ export function createServerClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseServiceKey) {
-    throw new Error("Supabase service role key is required for server operations")
+    console.warn("Supabase service role key not found - some server operations may not work")
+    return null
   }
 
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {

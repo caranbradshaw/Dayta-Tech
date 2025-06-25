@@ -3,13 +3,13 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/components/auth-context"
 import { Toaster } from "@/components/ui/toast"
+import { AuthProvider } from "@/components/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DaytaTech - AI-Powered Data Analysis",
+  title: "DaytaTech - AI-Powered Business Analytics",
   description: "Transform your data into actionable insights with AI-powered analytics",
     generator: 'v0.dev'
 }
