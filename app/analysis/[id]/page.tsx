@@ -10,19 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import {
-  FileText,
-  BarChart3,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Lightbulb,
-  Target,
-  Building,
-  Calendar,
-  FileSpreadsheet,
-  Presentation,
-} from "lucide-react"
+import { AnalysisExportDialog } from "@/components/analysis-export-dialog"
+import { BarChart3, AlertCircle, CheckCircle, Clock, Lightbulb, Target, Building, Calendar } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Analysis {
@@ -36,13 +25,13 @@ interface Analysis {
   updated_at: string
   processing_completed_at?: string
   user_id: string
+  analysis_role?: string
 }
 
 export default function AnalysisPage() {
   const { id: analysisId } = useParams()
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [loading, setLoading] = useState(true)
-  const [exporting, setExporting] = useState(false)
   const { user, profile } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -73,68 +62,6 @@ export default function AnalysisPage() {
       })
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleExport = async (format: string) => {
-    if (!profile) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to export reports.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Check export credits for basic users
-    if (profile.account_type === "basic" && profile.export_credits <= 0) {
-      toast({
-        title: "Export Limit Reached",
-        description: "You've reached your monthly export limit. Upgrade to Pro for unlimited exports.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      setExporting(true)
-      const response = await fetch(`/api/analysis/${analysisId}/export`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ format }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Export failed")
-      }
-
-      // Create download link
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.style.display = "none"
-      a.href = url
-      a.download = `analysis_${format}_${Date.now()}.${format === "excel" ? "csv" : format === "word" ? "doc" : format}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast({
-        title: "Export Successful",
-        description: `Your analysis has been exported as ${format.toUpperCase()}.`,
-      })
-    } catch (error) {
-      console.error("Export error:", error)
-      toast({
-        title: "Export Failed",
-        description: "Failed to export analysis. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setExporting(false)
     }
   }
 
@@ -238,18 +165,11 @@ export default function AnalysisPage() {
 
               {analysis.status === "completed" && (
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleExport("pdf")} disabled={exporting}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    PDF
-                  </Button>
-                  <Button variant="outline" onClick={() => handleExport("excel")} disabled={exporting}>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Excel
-                  </Button>
-                  <Button variant="outline" onClick={() => handleExport("powerpoint")} disabled={exporting}>
-                    <Presentation className="h-4 w-4 mr-2" />
-                    PowerPoint
-                  </Button>
+                  <AnalysisExportDialog
+                    analysisId={analysis.id}
+                    fileName={analysis.file_name}
+                    analysisData={analysis}
+                  />
                 </div>
               )}
             </div>
