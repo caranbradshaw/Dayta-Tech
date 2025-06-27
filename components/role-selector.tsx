@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,20 +49,23 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
   const [showCustomInput, setShowCustomInput] = useState(false)
 
   const handleRoleSelect = (role: string) => {
-    console.log("Role selected:", role)
+    console.log("✅ Role selected:", role)
     onChange(role as AnalysisRole)
-    setShowCustomInput(false)
-    setCustomRole("")
   }
 
   const handleCustomRole = () => {
-    if (customRole.trim()) {
-      console.log("Custom role added:", customRole.trim())
-      onChange(customRole.trim() as AnalysisRole)
+    const trimmed = customRole.trim()
+    if (trimmed) {
+      console.log("✅ Custom role added:", trimmed)
+      onChange(trimmed as AnalysisRole)
       setCustomRole("")
       setShowCustomInput(false)
     }
   }
+
+  useEffect(() => {
+    console.log("📦 Current selectedRole from parent:", selectedRole)
+  }, [selectedRole])
 
   return (
     <div className={className}>
@@ -106,7 +109,7 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
                 placeholder="Enter your role..."
                 value={customRole}
                 onChange={(e) => setCustomRole(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleCustomRole()}
+                onKeyDown={(e) => e.key === "Enter" && handleCustomRole()}
                 className="flex-1"
               />
               <Button type="button" onClick={handleCustomRole} size="sm" disabled={!customRole.trim()}>
@@ -138,6 +141,16 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
           </div>
         </div>
       )}
+
+      {/* DEBUG ROLE INPUT FIELD */}
+      <div className="mt-4">
+        <Label className="text-xs text-gray-400 mb-1">[DEBUG] Manual Role Setter</Label>
+        <Input
+          value={selectedRole}
+          onChange={(e) => onChange(e.target.value as AnalysisRole)}
+          className="text-xs"
+        />
+      </div>
     </div>
   )
 }
