@@ -130,11 +130,11 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
       case 1:
         return formData.companyName.trim() !== "" && formData.industry !== "" && formData.companySize !== ""
       case 2:
-        return formData.role !== ""
+        return formData.role !== "" && formData.role.trim() !== ""
       case 3:
         return formData.goals.length > 0
       case 4:
-        return formData.files.length > 0 // This is the key fix!
+        return formData.files.length > 0
       case 5:
         return true // Context is optional
       default:
@@ -143,8 +143,44 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
   }
 
   const nextStep = () => {
+    console.log("Next step clicked, current step:", currentStep)
+    console.log("Form data:", formData)
+    console.log("Can proceed:", canProceedToNextStep())
+
     if (canProceedToNextStep() && currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
+    } else if (!canProceedToNextStep()) {
+      // Show specific error messages
+      switch (currentStep) {
+        case 1:
+          toast({
+            title: "Missing Information",
+            description: "Please fill in all company information fields.",
+            variant: "destructive",
+          })
+          break
+        case 2:
+          toast({
+            title: "Role Required",
+            description: "Please select your role to continue.",
+            variant: "destructive",
+          })
+          break
+        case 3:
+          toast({
+            title: "Goals Required",
+            description: "Please select at least one analysis goal.",
+            variant: "destructive",
+          })
+          break
+        case 4:
+          toast({
+            title: "Files Required",
+            description: "Please upload at least one file to analyze.",
+            variant: "destructive",
+          })
+          break
+      }
     }
   }
 
@@ -164,6 +200,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
       return
     }
 
+    console.log("Submitting form data:", formData)
     onComplete(formData)
   }
 
@@ -228,11 +265,14 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
           <div className="space-y-6">
             <div>
               <Label className="text-base font-medium">What's your role? *</Label>
-              <p className="text-sm text-gray-600 mt-1">This helps us tailor the analysis to your perspective.</p>
+              <p className="text-sm text-gray-600 mt-1 mb-4">This helps us tailor the analysis to your perspective.</p>
             </div>
             <RoleSelector
               selectedRole={formData.role as AnalysisRole}
-              onChange={(role) => setFormData({ ...formData, role })}
+              onChange={(role) => {
+                console.log("Role changed to:", role)
+                setFormData({ ...formData, role })
+              }}
               isPremium={true}
             />
           </div>
@@ -245,7 +285,13 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
               <Label className="text-base font-medium">What are your main goals? *</Label>
               <p className="text-sm text-gray-600 mt-1">Select all that apply to get more relevant insights.</p>
             </div>
-            <GoalSelector selectedGoals={formData.goals} onChange={(goals) => setFormData({ ...formData, goals })} />
+            <GoalSelector
+              selectedGoals={formData.goals}
+              onChange={(goals) => {
+                console.log("Goals changed to:", goals)
+                setFormData({ ...formData, goals })
+              }}
+            />
           </div>
         )
 
@@ -374,16 +420,19 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button
-              type="button"
-              onClick={nextStep}
-              disabled={!canProceedToNextStep()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
+            <Button type="button" onClick={nextStep} className="bg-blue-600 hover:bg-blue-700">
               Next
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           )}
+        </div>
+
+        {/* Debug info - remove in production */}
+        <div className="text-xs text-gray-400 mt-4 p-2 bg-gray-50 rounded">
+          <p>
+            Debug: Step {currentStep}, Role: "{formData.role}", Goals: {formData.goals.length}, Can proceed:{" "}
+            {canProceedToNextStep().toString()}
+          </p>
         </div>
       </CardContent>
     </Card>
