@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,19 +62,35 @@ export function GoalSelector({ selectedGoals, onChange, className }: GoalSelecto
   const [customGoal, setCustomGoal] = useState("")
 
   const toggleGoal = (goal: string) => {
-    console.log("Goal toggled:", goal)
-    if (selectedGoals.includes(goal)) {
-      onChange(selectedGoals.filter((g) => g !== goal))
+    console.log("Goal toggled:", goal, "Current goals:", selectedGoals)
+
+    const isCurrentlySelected = selectedGoals.includes(goal)
+    let newGoals: string[]
+
+    if (isCurrentlySelected) {
+      newGoals = selectedGoals.filter((g) => g !== goal)
     } else {
-      onChange([...selectedGoals, goal])
+      newGoals = [...selectedGoals, goal]
     }
+
+    console.log("New goals:", newGoals)
+    onChange(newGoals)
   }
 
   const addCustomGoal = () => {
-    if (customGoal.trim() && !selectedGoals.includes(customGoal.trim())) {
-      console.log("Custom goal added:", customGoal.trim())
-      onChange([...selectedGoals, customGoal.trim()])
+    const trimmedGoal = customGoal.trim()
+    if (trimmedGoal && !selectedGoals.includes(trimmedGoal)) {
+      console.log("Custom goal added:", trimmedGoal)
+      const newGoals = [...selectedGoals, trimmedGoal]
+      onChange(newGoals)
       setCustomGoal("")
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      addCustomGoal()
     }
   }
 
@@ -101,7 +119,7 @@ export function GoalSelector({ selectedGoals, onChange, className }: GoalSelecto
                     >
                       <div className="flex items-start gap-3 w-full">
                         <div className="flex-1 text-sm">{goal}</div>
-                        {isSelected && <Check className="h-4 w-4 text-white flex-shrink-0" />}
+                        {isSelected && <Check className="h-4 w-4 flex-shrink-0" />}
                       </div>
                     </Button>
                   )
@@ -122,7 +140,7 @@ export function GoalSelector({ selectedGoals, onChange, className }: GoalSelecto
             placeholder="Enter your specific goal..."
             value={customGoal}
             onChange={(e) => setCustomGoal(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && addCustomGoal()}
+            onKeyPress={handleKeyPress}
           />
           <Button type="button" onClick={addCustomGoal} size="sm" disabled={!customGoal.trim()}>
             <Plus className="h-4 w-4" />
@@ -134,8 +152,13 @@ export function GoalSelector({ selectedGoals, onChange, className }: GoalSelecto
         <div className="border-t pt-4 mt-4">
           <Label className="text-sm font-medium mb-2 block">Selected Goals ({selectedGoals.length})</Label>
           <div className="flex flex-wrap gap-2">
-            {selectedGoals.map((goal) => (
-              <Badge key={goal} variant="secondary" className="cursor-pointer text-xs" onClick={() => toggleGoal(goal)}>
+            {selectedGoals.map((goal, index) => (
+              <Badge
+                key={`${goal}-${index}`}
+                variant="secondary"
+                className="cursor-pointer text-xs"
+                onClick={() => toggleGoal(goal)}
+              >
                 {goal} ×
               </Badge>
             ))}

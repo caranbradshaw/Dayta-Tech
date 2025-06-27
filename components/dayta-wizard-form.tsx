@@ -59,7 +59,6 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
   const totalSteps = 5
 
   const onDrop = (acceptedFiles: File[]) => {
-    // Validate file types
     const validTypes = [
       "text/csv",
       "application/vnd.ms-excel",
@@ -80,7 +79,6 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
         return false
       }
 
-      // Check file size (50MB limit)
       if (file.size > 50 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -126,15 +124,25 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
   }
 
   const canProceedToNextStep = () => {
+    console.log("Checking if can proceed from step", currentStep, "with data:", formData)
+
     switch (currentStep) {
       case 1:
-        return formData.companyName.trim() !== "" && formData.industry !== "" && formData.companySize !== ""
+        const step1Valid = formData.companyName.trim() !== "" && formData.industry !== "" && formData.companySize !== ""
+        console.log("Step 1 valid:", step1Valid)
+        return step1Valid
       case 2:
-        return formData.role !== "" && formData.role.trim() !== ""
+        const step2Valid = formData.role !== "" && formData.role.trim() !== ""
+        console.log("Step 2 valid:", step2Valid, "Role:", formData.role)
+        return step2Valid
       case 3:
-        return formData.goals.length > 0
+        const step3Valid = formData.goals.length > 0
+        console.log("Step 3 valid:", step3Valid, "Goals:", formData.goals)
+        return step3Valid
       case 4:
-        return formData.files.length > 0
+        const step4Valid = formData.files.length > 0
+        console.log("Step 4 valid:", step4Valid, "Files:", formData.files.length)
+        return step4Valid
       case 5:
         return true // Context is optional
       default:
@@ -150,7 +158,6 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
     if (canProceedToNextStep() && currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     } else if (!canProceedToNextStep()) {
-      // Show specific error messages
       switch (currentStep) {
         case 1:
           toast({
@@ -204,6 +211,15 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
     onComplete(formData)
   }
 
+  const updateFormData = (updates: Partial<WizardData>) => {
+    console.log("Updating form data with:", updates)
+    setFormData((prev) => {
+      const newData = { ...prev, ...updates }
+      console.log("New form data:", newData)
+      return newData
+    })
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -214,7 +230,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
               <Input
                 id="companyName"
                 value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                onChange={(e) => updateFormData({ companyName: e.target.value })}
                 placeholder="Enter your company name"
                 className="mt-1"
               />
@@ -222,10 +238,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
 
             <div>
               <Label htmlFor="industry">Industry *</Label>
-              <Select
-                value={formData.industry}
-                onValueChange={(value) => setFormData({ ...formData, industry: value })}
-              >
+              <Select value={formData.industry} onValueChange={(value) => updateFormData({ industry: value })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select your industry" />
                 </SelectTrigger>
@@ -241,10 +254,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
 
             <div>
               <Label htmlFor="companySize">Company Size *</Label>
-              <Select
-                value={formData.companySize}
-                onValueChange={(value) => setFormData({ ...formData, companySize: value })}
-              >
+              <Select value={formData.companySize} onValueChange={(value) => updateFormData({ companySize: value })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select company size" />
                 </SelectTrigger>
@@ -271,7 +281,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
               selectedRole={formData.role as AnalysisRole}
               onChange={(role) => {
                 console.log("Role changed to:", role)
-                setFormData({ ...formData, role })
+                updateFormData({ role })
               }}
               isPremium={true}
             />
@@ -289,7 +299,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
               selectedGoals={formData.goals}
               onChange={(goals) => {
                 console.log("Goals changed to:", goals)
-                setFormData({ ...formData, goals })
+                updateFormData({ goals })
               }}
             />
           </div>
@@ -358,7 +368,7 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
             <Textarea
               id="context"
               value={formData.context}
-              onChange={(e) => setFormData({ ...formData, context: e.target.value })}
+              onChange={(e) => updateFormData({ context: e.target.value })}
               placeholder="e.g., This data contains sales information from Q4 2023. I'm particularly interested in regional performance trends..."
               rows={6}
               className="mt-1"
@@ -420,17 +430,22 @@ export function DaytaWizardForm({ onComplete }: DaytaWizardFormProps) {
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button type="button" onClick={nextStep} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              type="button"
+              onClick={nextStep}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!canProceedToNextStep()}
+            >
               Next
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           )}
         </div>
 
-        {/* Debug info - remove in production */}
+        {/* Debug info */}
         <div className="text-xs text-gray-400 mt-4 p-2 bg-gray-50 rounded">
           <p>
-            Debug: Step {currentStep}, Role: "{formData.role}", Goals: {formData.goals.length}, Can proceed:{" "}
+            Debug: Step {currentStep} | Role: "{formData.role}" | Goals: {formData.goals.length} | Can proceed:{" "}
             {canProceedToNextStep().toString()}
           </p>
         </div>

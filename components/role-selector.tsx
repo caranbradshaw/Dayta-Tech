@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,23 +51,33 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
   const [showCustomInput, setShowCustomInput] = useState(false)
 
   const handleRoleSelect = (role: string) => {
-    console.log("✅ Role selected:", role)
+    console.log("Role selected:", role, "Current role:", selectedRole)
     onChange(role as AnalysisRole)
+    setShowCustomInput(false)
+    setCustomRole("")
   }
 
   const handleCustomRole = () => {
-    const trimmed = customRole.trim()
-    if (trimmed) {
-      console.log("✅ Custom role added:", trimmed)
-      onChange(trimmed as AnalysisRole)
+    const trimmedRole = customRole.trim()
+    if (trimmedRole) {
+      console.log("Custom role added:", trimmedRole)
+      onChange(trimmedRole as AnalysisRole)
       setCustomRole("")
       setShowCustomInput(false)
     }
   }
 
-  useEffect(() => {
-    console.log("📦 Current selectedRole from parent:", selectedRole)
-  }, [selectedRole])
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleCustomRole()
+    }
+  }
+
+  const cancelCustomRole = () => {
+    setShowCustomInput(false)
+    setCustomRole("")
+  }
 
   return (
     <div className={className}>
@@ -85,7 +97,7 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
                   <div className="font-medium text-sm">{role}</div>
                   <div className="text-xs text-muted-foreground mt-1 opacity-80">{description}</div>
                 </div>
-                {isSelected && <Check className="h-4 w-4 text-white flex-shrink-0" />}
+                {isSelected && <Check className="h-4 w-4 flex-shrink-0" />}
               </div>
             </Button>
           )
@@ -109,22 +121,14 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
                 placeholder="Enter your role..."
                 value={customRole}
                 onChange={(e) => setCustomRole(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCustomRole()}
+                onKeyPress={handleKeyPress}
                 className="flex-1"
               />
               <Button type="button" onClick={handleCustomRole} size="sm" disabled={!customRole.trim()}>
                 Add
               </Button>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowCustomInput(false)
-                setCustomRole("")
-              }}
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={cancelCustomRole}>
               Cancel
             </Button>
           </div>
@@ -141,16 +145,6 @@ export function RoleSelector({ selectedRole, onChange, isPremium = false, classN
           </div>
         </div>
       )}
-
-      {/* DEBUG ROLE INPUT FIELD */}
-      <div className="mt-4">
-        <Label className="text-xs text-gray-400 mb-1">[DEBUG] Manual Role Setter</Label>
-        <Input
-          value={selectedRole}
-          onChange={(e) => onChange(e.target.value as AnalysisRole)}
-          className="text-xs"
-        />
-      </div>
     </div>
   )
 }
