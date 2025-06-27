@@ -5,144 +5,183 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Check } from "lucide-react"
+import { Check, Plus, User, TrendingUp, Users, Settings, BarChart3, Brain } from "lucide-react"
 
 export type AnalysisRole =
-  | "CEO/Founder"
-  | "Data Analyst"
-  | "Business Analyst"
-  | "Marketing Manager"
-  | "Sales Manager"
-  | "Operations Manager"
-  | "Product Manager"
-  | "Finance Manager"
-  | "HR Manager"
-  | "IT Manager"
-  | "Consultant"
-  | "Student/Researcher"
+  | "business_owner"
+  | "data_analyst"
+  | "marketing_manager"
+  | "operations_manager"
+  | "financial_analyst"
+  | "consultant"
   | string
-
-const PREDEFINED_ROLES = [
-  { role: "CEO/Founder", description: "Strategic oversight and decision making" },
-  { role: "Data Analyst", description: "Data analysis and reporting" },
-  { role: "Business Analyst", description: "Business process analysis" },
-  { role: "Marketing Manager", description: "Marketing strategy and campaigns" },
-  { role: "Sales Manager", description: "Sales performance and strategy" },
-  { role: "Operations Manager", description: "Operational efficiency and processes" },
-  { role: "Product Manager", description: "Product development and strategy" },
-  { role: "Finance Manager", description: "Financial analysis and planning" },
-  { role: "HR Manager", description: "Human resources and talent management" },
-  { role: "IT Manager", description: "Technology and systems management" },
-  { role: "Consultant", description: "External advisory and analysis" },
-  { role: "Student/Researcher", description: "Academic or research purposes" },
-]
 
 interface RoleSelectorProps {
   selectedRole: AnalysisRole
   onChange: (role: AnalysisRole) => void
   isPremium?: boolean
-  className?: string
 }
 
-export function RoleSelector({ selectedRole, onChange, isPremium = false, className }: RoleSelectorProps) {
+const PREDEFINED_ROLES = [
+  {
+    id: "business_owner",
+    label: "Business Owner",
+    description: "Strategic insights and growth opportunities",
+    icon: TrendingUp,
+    premium: false,
+  },
+  {
+    id: "data_analyst",
+    label: "Data Analyst",
+    description: "Technical analysis and data patterns",
+    icon: BarChart3,
+    premium: false,
+  },
+  {
+    id: "marketing_manager",
+    label: "Marketing Manager",
+    description: "Customer insights and campaign optimization",
+    icon: Users,
+    premium: false,
+  },
+  {
+    id: "operations_manager",
+    label: "Operations Manager",
+    description: "Process optimization and efficiency metrics",
+    icon: Settings,
+    premium: true,
+  },
+  {
+    id: "financial_analyst",
+    label: "Financial Analyst",
+    description: "Financial performance and forecasting",
+    icon: TrendingUp,
+    premium: true,
+  },
+  {
+    id: "consultant",
+    label: "Consultant",
+    description: "Comprehensive analysis for client recommendations",
+    icon: Brain,
+    premium: true,
+  },
+]
+
+export function RoleSelector({ selectedRole, onChange, isPremium = false }: RoleSelectorProps) {
   const [customRole, setCustomRole] = useState("")
   const [showCustomInput, setShowCustomInput] = useState(false)
 
-  const handleRoleSelect = (role: string) => {
-    console.log("Role selected:", role, "Current role:", selectedRole)
-    onChange(role as AnalysisRole)
-    setShowCustomInput(false)
-    setCustomRole("")
+  const handleRoleSelect = (roleId: string) => {
+    console.log("Role selected:", roleId)
+    onChange(roleId)
   }
 
-  const handleCustomRole = () => {
-    const trimmedRole = customRole.trim()
-    if (trimmedRole) {
-      console.log("Custom role added:", trimmedRole)
-      onChange(trimmedRole as AnalysisRole)
+  const handleCustomRoleAdd = () => {
+    if (customRole.trim()) {
+      console.log("Custom role added:", customRole.trim())
+      onChange(customRole.trim())
       setCustomRole("")
       setShowCustomInput(false)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleCustomRoleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      e.preventDefault()
-      handleCustomRole()
+      handleCustomRoleAdd()
+    } else if (e.key === "Escape") {
+      setShowCustomInput(false)
+      setCustomRole("")
     }
   }
 
-  const cancelCustomRole = () => {
-    setShowCustomInput(false)
-    setCustomRole("")
-  }
+  const isRoleSelected = (roleId: string) => selectedRole === roleId
+
+  const isCustomRole = !PREDEFINED_ROLES.some((role) => role.id === selectedRole) && selectedRole !== ""
 
   return (
-    <div className={className}>
+    <div className="space-y-4">
       <div className="grid gap-3">
-        {PREDEFINED_ROLES.map(({ role, description }) => {
-          const isSelected = selectedRole === role
+        {PREDEFINED_ROLES.map((role) => {
+          const Icon = role.icon
+          const isSelected = isRoleSelected(role.id)
+          const isDisabled = role.premium && !isPremium
+
           return (
             <Button
-              key={role}
+              key={role.id}
               type="button"
               variant={isSelected ? "default" : "outline"}
-              onClick={() => handleRoleSelect(role)}
-              className="justify-start h-auto p-4 text-left relative"
+              className={`h-auto p-4 justify-start text-left ${
+                isSelected ? "bg-blue-600 hover:bg-blue-700" : ""
+              } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={() => !isDisabled && handleRoleSelect(role.id)}
+              disabled={isDisabled}
             >
-              <div className="flex items-start gap-3 w-full">
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{role}</div>
-                  <div className="text-xs text-muted-foreground mt-1 opacity-80">{description}</div>
+              <div className="flex items-center gap-3 w-full">
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{role.label}</span>
+                    {role.premium && (
+                      <Badge variant="secondary" className="text-xs">
+                        Pro
+                      </Badge>
+                    )}
+                    {isSelected && <Check className="h-4 w-4 ml-auto" />}
+                  </div>
+                  <p className="text-sm opacity-80 mt-1">{role.description}</p>
                 </div>
-                {isSelected && <Check className="h-4 w-4 flex-shrink-0" />}
               </div>
             </Button>
           )
         })}
       </div>
 
-      <div className="mt-4">
+      {/* Custom Role Section */}
+      <div className="border-t pt-4">
         {!showCustomInput ? (
-          <Button type="button" variant="outline" onClick={() => setShowCustomInput(true)} className="w-full">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full bg-transparent"
+            onClick={() => setShowCustomInput(true)}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Custom Role
           </Button>
         ) : (
-          <div className="space-y-3">
-            <Label htmlFor="custom-role" className="text-sm font-medium">
-              Custom Role
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="custom-role"
-                placeholder="Enter your role..."
-                value={customRole}
-                onChange={(e) => setCustomRole(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="flex-1"
-              />
-              <Button type="button" onClick={handleCustomRole} size="sm" disabled={!customRole.trim()}>
-                Add
-              </Button>
-            </div>
-            <Button type="button" variant="ghost" size="sm" onClick={cancelCustomRole}>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter your custom role..."
+              value={customRole}
+              onChange={(e) => setCustomRole(e.target.value)}
+              onKeyDown={handleCustomRoleKeyPress}
+              autoFocus
+            />
+            <Button type="button" onClick={handleCustomRoleAdd} disabled={!customRole.trim()}>
+              Add
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowCustomInput(false)
+                setCustomRole("")
+              }}
+            >
               Cancel
             </Button>
           </div>
         )}
       </div>
 
-      {selectedRole && (
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <Label className="text-sm font-medium">Selected Role:</Label>
-          <div className="mt-1">
-            <Badge variant="secondary" className="text-sm">
-              {selectedRole}
-            </Badge>
-          </div>
+      {/* Show selected custom role */}
+      {isCustomRole && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+          <User className="h-4 w-4 text-blue-600" />
+          <span className="font-medium text-blue-900">Selected: {selectedRole}</span>
+          <Check className="h-4 w-4 text-blue-600 ml-auto" />
         </div>
       )}
     </div>

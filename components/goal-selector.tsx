@@ -5,163 +5,179 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Plus, TrendingUp, Users, Cog, BarChart3, Check } from "lucide-react"
-
-const PREDEFINED_GOALS = [
-  {
-    category: "Revenue",
-    icon: TrendingUp,
-    goals: [
-      "Increase monthly recurring revenue by 25%",
-      "Improve customer lifetime value",
-      "Reduce customer acquisition cost",
-      "Optimize pricing strategy",
-    ],
-  },
-  {
-    category: "Efficiency",
-    icon: Cog,
-    goals: [
-      "Reduce operational costs by 15%",
-      "Automate manual processes",
-      "Improve team productivity",
-      "Streamline workflows",
-    ],
-  },
-  {
-    category: "Customer",
-    icon: Users,
-    goals: [
-      "Increase customer satisfaction scores",
-      "Reduce churn rate by 20%",
-      "Improve customer support response time",
-      "Enhance user experience",
-    ],
-  },
-  {
-    category: "Growth",
-    icon: BarChart3,
-    goals: [
-      "Expand to new markets",
-      "Launch new product features",
-      "Increase market share",
-      "Scale operations efficiently",
-    ],
-  },
-]
+import { Check, Plus, Target, TrendingUp, Users, DollarSign, BarChart3, Zap } from "lucide-react"
 
 interface GoalSelectorProps {
   selectedGoals: string[]
   onChange: (goals: string[]) => void
-  className?: string
 }
 
-export function GoalSelector({ selectedGoals, onChange, className }: GoalSelectorProps) {
+const PREDEFINED_GOALS = [
+  {
+    id: "increase_revenue",
+    label: "Increase Revenue",
+    description: "Find opportunities to boost sales and income",
+    icon: DollarSign,
+  },
+  {
+    id: "reduce_costs",
+    label: "Reduce Costs",
+    description: "Identify areas to cut expenses and improve efficiency",
+    icon: TrendingUp,
+  },
+  {
+    id: "improve_customer_satisfaction",
+    label: "Improve Customer Satisfaction",
+    description: "Enhance customer experience and retention",
+    icon: Users,
+  },
+  {
+    id: "optimize_operations",
+    label: "Optimize Operations",
+    description: "Streamline processes and workflows",
+    icon: Zap,
+  },
+  {
+    id: "market_analysis",
+    label: "Market Analysis",
+    description: "Understand market trends and opportunities",
+    icon: BarChart3,
+  },
+  {
+    id: "performance_tracking",
+    label: "Performance Tracking",
+    description: "Monitor KPIs and business metrics",
+    icon: Target,
+  },
+]
+
+export function GoalSelector({ selectedGoals, onChange }: GoalSelectorProps) {
   const [customGoal, setCustomGoal] = useState("")
+  const [showCustomInput, setShowCustomInput] = useState(false)
 
-  const toggleGoal = (goal: string) => {
-    console.log("Goal toggled:", goal, "Current goals:", selectedGoals)
-
-    const isCurrentlySelected = selectedGoals.includes(goal)
-    let newGoals: string[]
-
-    if (isCurrentlySelected) {
-      newGoals = selectedGoals.filter((g) => g !== goal)
-    } else {
-      newGoals = [...selectedGoals, goal]
-    }
+  const handleGoalToggle = (goalId: string) => {
+    console.log("Goal toggled:", goalId)
+    const newGoals = selectedGoals.includes(goalId)
+      ? selectedGoals.filter((g) => g !== goalId)
+      : [...selectedGoals, goalId]
 
     console.log("New goals:", newGoals)
     onChange(newGoals)
   }
 
-  const addCustomGoal = () => {
-    const trimmedGoal = customGoal.trim()
-    if (trimmedGoal && !selectedGoals.includes(trimmedGoal)) {
-      console.log("Custom goal added:", trimmedGoal)
-      const newGoals = [...selectedGoals, trimmedGoal]
+  const handleCustomGoalAdd = () => {
+    if (customGoal.trim() && !selectedGoals.includes(customGoal.trim())) {
+      console.log("Custom goal added:", customGoal.trim())
+      const newGoals = [...selectedGoals, customGoal.trim()]
       onChange(newGoals)
+      setCustomGoal("")
+      setShowCustomInput(false)
+    }
+  }
+
+  const handleCustomGoalKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleCustomGoalAdd()
+    } else if (e.key === "Escape") {
+      setShowCustomInput(false)
       setCustomGoal("")
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      addCustomGoal()
-    }
-  }
+  const isGoalSelected = (goalId: string) => selectedGoals.includes(goalId)
+
+  const customGoals = selectedGoals.filter((goal) => !PREDEFINED_GOALS.some((predefined) => predefined.id === goal))
 
   return (
-    <div className={className}>
-      <div className="space-y-6">
-        {PREDEFINED_GOALS.map((category) => {
-          const Icon = category.icon
+    <div className="space-y-4">
+      <div className="grid gap-3">
+        {PREDEFINED_GOALS.map((goal) => {
+          const Icon = goal.icon
+          const isSelected = isGoalSelected(goal.id)
+
           return (
-            <div key={category.category}>
-              <div className="flex items-center gap-2 mb-3">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <h4 className="font-medium">{category.category}</h4>
+            <Button
+              key={goal.id}
+              type="button"
+              variant={isSelected ? "default" : "outline"}
+              className={`h-auto p-4 justify-start text-left ${isSelected ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+              onClick={() => handleGoalToggle(goal.id)}
+            >
+              <div className="flex items-center gap-3 w-full">
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{goal.label}</span>
+                    {isSelected && <Check className="h-4 w-4 ml-auto" />}
+                  </div>
+                  <p className="text-sm opacity-80 mt-1">{goal.description}</p>
+                </div>
               </div>
-              <div className="grid gap-2">
-                {category.goals.map((goal) => {
-                  const isSelected = selectedGoals.includes(goal)
-                  return (
-                    <Button
-                      key={goal}
-                      type="button"
-                      variant={isSelected ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleGoal(goal)}
-                      className="justify-start h-auto p-3 text-left relative"
-                    >
-                      <div className="flex items-start gap-3 w-full">
-                        <div className="flex-1 text-sm">{goal}</div>
-                        {isSelected && <Check className="h-4 w-4 flex-shrink-0" />}
-                      </div>
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
+            </Button>
           )
         })}
       </div>
 
-      <div className="border-t pt-4 mt-6">
-        <Label htmlFor="custom-goal" className="text-sm font-medium">
-          Add Custom Goal
-        </Label>
-        <div className="flex gap-2 mt-2">
-          <Input
-            id="custom-goal"
-            placeholder="Enter your specific goal..."
-            value={customGoal}
-            onChange={(e) => setCustomGoal(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          <Button type="button" onClick={addCustomGoal} size="sm" disabled={!customGoal.trim()}>
-            <Plus className="h-4 w-4" />
+      {/* Custom Goal Section */}
+      <div className="border-t pt-4">
+        {!showCustomInput ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full bg-transparent"
+            onClick={() => setShowCustomInput(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Custom Goal
           </Button>
-        </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter your custom goal..."
+              value={customGoal}
+              onChange={(e) => setCustomGoal(e.target.value)}
+              onKeyDown={handleCustomGoalKeyPress}
+              autoFocus
+            />
+            <Button type="button" onClick={handleCustomGoalAdd} disabled={!customGoal.trim()}>
+              Add
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowCustomInput(false)
+                setCustomGoal("")
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </div>
 
+      {/* Show selected goals */}
       {selectedGoals.length > 0 && (
-        <div className="border-t pt-4 mt-4">
-          <Label className="text-sm font-medium mb-2 block">Selected Goals ({selectedGoals.length})</Label>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Selected Goals ({selectedGoals.length}):</p>
           <div className="flex flex-wrap gap-2">
-            {selectedGoals.map((goal, index) => (
-              <Badge
-                key={`${goal}-${index}`}
-                variant="secondary"
-                className="cursor-pointer text-xs"
-                onClick={() => toggleGoal(goal)}
-              >
-                {goal} ×
-              </Badge>
-            ))}
+            {selectedGoals.map((goal) => {
+              const predefinedGoal = PREDEFINED_GOALS.find((g) => g.id === goal)
+              const isCustom = !predefinedGoal
+
+              return (
+                <Badge
+                  key={goal}
+                  variant="default"
+                  className="bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
+                  onClick={() => handleGoalToggle(goal)}
+                >
+                  {predefinedGoal ? predefinedGoal.label : goal}
+                  <Check className="h-3 w-3 ml-1" />
+                </Badge>
+              )
+            })}
           </div>
         </div>
       )}
