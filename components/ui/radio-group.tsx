@@ -1,38 +1,23 @@
-"use client"
-
-import * as React from "react"
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
-import { Circle } from "lucide-react"
-
-import { cn } from "@/lib/utils"
-
-const RadioGroup = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
->(({ className, ...props }, ref) => {
-  return <RadioGroupPrimitive.Root className={cn("grid gap-2", className)} {...props} ref={ref} />
-})
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
-
-const RadioGroupItem = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
->(({ className, ...props }, ref) => {
-  return (
-    <RadioGroupPrimitive.Item
-      ref={ref}
-      className={cn(
-        "aspect-square h-4 w-4 rounded-full border border-primary text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Circle className="h-2.5 w-2.5 fill-current text-current" />
-      </RadioGroupPrimitive.Indicator>
-    </RadioGroupPrimitive.Item>
-  )
-})
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName
-
-export { RadioGroup, RadioGroupItem }
+<RadioGroup value={selectedRole} onValueChange={setSelectedRole} className="space-y-4">
+  {roles.map((role) => {
+    const Icon = role.icon
+    return (
+      <Label
+        key={role.id}
+        htmlFor={role.id}
+        className={`flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer ${
+          selectedRole === role.id ? "border-blue-500 ring-2 ring-blue-300" : "border-gray-200"
+        }`}
+      >
+        <RadioGroupItem value={role.id} id={role.id} />
+        <div className="flex items-center space-x-3 flex-1">
+          <Icon className="h-6 w-6 text-blue-600" />
+          <div>
+            <div className="text-base font-medium">{role.title}</div>
+            <p className="text-sm text-gray-500">{role.description}</p>
+          </div>
+        </div>
+      </Label>
+    )
+  })}
+</RadioGroup>
